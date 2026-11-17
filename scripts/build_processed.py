@@ -1,0 +1,319 @@
+"""Turn data/raw/* into the small, clean files the site loads from data/processed/.
+
+Standard library only:
+
+    python scripts/build_processed.py
+
+Every rule that changes or derives a value is written here, so the write-up can cite it.
+Column meanings are documented in data/README.md.
+"""
+import csv
+import gzip
+import json
+import re
+from collections import Counter, defaultdict
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+RAW = ROOT / "data" / "raw"
+OUT = ROOT / "data" / "processed"
+TODAY = date.today().isoformat()
+
+
+def write(name, rows, fields):
+    OUT.mkdir(parents=True, exist_ok=True)
+    with open(OUT / name, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    print(f"  {name}: {len(rows)} rows")
+
+
+def read_csv(path):
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def qid(url):
+    return url.rsplit("/", 1)[-1] if url else ""
+
+
+# ------------------------------------------------------------------ MCU suits (Kaggle)
+MONTHS = {m: i for i, m in enumerate(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], 1)}
+PART = {"Early": 2, "Mid": 7, "Late": 11}  # "Early 2016" -> Feb, "Mid" -> Jul, "Late" -> Nov
+
+
+def parse_build_date(s):
+    """Approximate in-universe build dates -> (start, end, is_interval)."""
+    if m := re.fullmatch(r"(\w{3})-(\w{3}) (\d{4})", s):          # "May-Dec 2012"
+        y = int(m[3])
+        return date(y, MONTHS[m[1]], 1), date(y, MONTHS[m[2]], 28), True
+    if m := re.fullmatch(r"(Early|Mid|Late) (\d{4})", s):          # "Mid 2009"
+        d = date(int(m[2]), PART[m[1]], 1)
+        return d, d, False
+    if m := re.fullmatch(r"(\w{3}) (\d{4})", s):                   # "Feb 2008" -> mid-month
+        d = date(int(m[2]), MONTHS[m[1]], 15)
+        return d, d, False
+    raise ValueError(f"unparsed build date: {s!r}")
+
+
+def parse_value(s):
+    """'$100 Million' -> 100000000, '$1.8 Billion' -> 1800000000, '$0' -> 0."""
+    m = re.fullmatch(r"\$([\d.]+)\s*(Million|Billion)?", s.strip(), re.I)
+    mult = {"million": 1e6, "billion": 1e9}.get((m[2] or "").lower(), 1)
+    return int(round(float(m[1]) * mult))
+
+
+def build_suits():
+    rows = []
+    for r in read_csv(RAW / "kaggle" / "mcu_iron_man_suits.csv"):
+        r = {k.strip(): v.strip() for k, v in r.items()}
+        start, end, interval = parse_build_date(r["Date Made"])
+        rows.append({
+            "mark": int(r["Model"].replace("Mark ", "")),
+            "model": r["Model"],
+            "era": r["Era"],
+            "codename": "" if r["Codename"] == "N/A" else r["Codename"],
+            "ability": r["Primary Ability"],
+            "date_label": r["Date Made"],
+            "date_start": start.isoformat(),
+            "date_end": end.isoformat(),
+            "date_is_interval": str(interval).lower(),
+            "value_usd": parse_value(r["Estimated Value"]),
+            "films": "|".join(f.strip() for f in r["Key Movie Appearances"].split(",")),
+        })
+    write("suits.csv", rows, list(rows[0]))
+
+
+# ------------------------------------------------------------------ Films (Wikidata + IMDb)
+SHORT = {
+    "Iron Man": "IM", "The Incredible Hulk": "TIH", "Iron Man 2": "IM2", "The Avengers": "AVG", "Iron Man 3": "IM3",
+    "Avengers: Age of Ultron": "AoU", "Captain America: Civil War": "CW", "Spider-Man: Homecoming": "HC",
+    "Avengers: Infinity War": "IW", "Avengers: Endgame": "EG", "Avengers: Doomsday": "DD",
+}
+
+
+def load_ratings(ids):
+    """IMDb rating and votes for just the ids we need (the full table is ~1.5M rows)."""
+    path = RAW / "imdb" / "title.ratings.tsv.gz"
+    if not path.exists():
+        print("  (no IMDb file; ratings left blank. Run fetch_raw.py imdb)")
+        return {}
+    out = {}
+    with gzip.open(path, "rt", encoding="utf-8") as f:
+        next(f)
+        for line in f:
+            tconst, rating, votes = line.rstrip("\n").split("\t")
+            if tconst in ids:
+                out[tconst] = (rating, votes)
+    return out
+
+
+def build_films():
+    rdj = defaultdict(lambda: {"dates": set(), "roles": set()})
+    for r in read_csv(RAW / "wikidata" / "rdj_filmography.csv"):
+        e = rdj[qid(r["film"])]
+        e.update(title=r["title"], imdb=r["imdb"])
+        if r["date"][:4].isdigit():
+            e["dates"].add(r["date"][:10])
+        if r["roleName"]:
+            e["roles"].add(r["roleName"])
+
+    # Rule: keep released theatrical films only; drop TV, announced projects and alternate cuts.
+    skip_types = ("television", "miniseries", "film project", "extended cut", "re-release")
+    rows = read_csv(RAW / "wikidata" / "mcu_films.csv")
+    skipped = {qid(r["film"]) for r in rows if any(t in r["typeLabel"].lower() for t in skip_types)}
+    mcu = defaultdict(lambda: {"dates": set(), "box": {}, "tony": False})
+    for r in rows:
+        if qid(r["film"]) in skipped or not r["title"]:
+            continue
+        e = mcu[qid(r["film"])]
+        e.update(title=r["title"], imdb=r["imdb"])
+        e["tony"] |= r.get("tony") == "true"
+        if r["date"][:4].isdigit():
+            e["dates"].add(r["date"][:10])
+        if r["box"]:
+            e["box"][r["boxScopeLabel"] or ""] = max(float(r["box"]), e["box"].get(r["boxScopeLabel"] or "", 0))
+
+    suit_films = {f.strip() for r in read_csv(RAW / "kaggle" / "mcu_iron_man_suits.csv")
+                  for f in r["Key Movie Appearances "].split(",")}
+    ratings = load_ratings({e["imdb"] for e in list(mcu.values()) + list(rdj.values()) if e.get("imdb")})
+
+    def worldwide(box):
+        # Rule: prefer a value qualified as worldwide; otherwise the largest value (Wikidata lists
+        # domestic/opening figures alongside the worldwide total without always qualifying them).
+        for scope, v in box.items():
+            if "world" in scope.lower():
+                return int(v)
+        return int(max(box.values())) if box else ""
+
+    films = []
+    for q, e in mcu.items():
+        rel = min(e["dates"]) if e["dates"] else ""
+        if not rel or rel > TODAY and "Doom" not in e["title"]:  # rule: released films, plus Doomsday for the epilogue
+            continue
+        rating = ratings.get(e.get("imdb"), ("", ""))
+        role = "; ".join(sorted(rdj[q]["roles"])) if q in rdj else ""
+        # rule: a film is a Tony Stark film if Wikidata lists MCU Tony Stark as a character, or if any
+        # suit in the Kaggle suit dataset appears in it (Wikidata misses several of these).
+        if e["tony"] or e["title"] in suit_films:
+            role = "Tony Stark"
+        films.append({
+            "title": e["title"], "short": SHORT.get(e["title"], ""), "release_date": rel,
+            "worldwide_gross_usd": worldwide(e["box"]), "imdb_id": e.get("imdb", ""),
+            "imdb_rating": rating[0], "imdb_votes": rating[1], "rdj_role": role, "wikidata_id": q,
+        })
+    films.sort(key=lambda f: f["release_date"] or "9999")
+    write("films.csv", films, list(films[0]))
+
+    rows = []
+    for q, e in rdj.items():
+        rating = ratings.get(e.get("imdb"), ("", ""))
+        rows.append({
+            "title": e["title"], "release_date": min(e["dates"]) if e["dates"] else "",
+            "role": "; ".join(sorted(e["roles"])), "mcu": str(q in mcu).lower(),
+            "imdb_id": e.get("imdb", ""), "imdb_rating": rating[0], "imdb_votes": rating[1], "wikidata_id": q,
+        })
+    rows.sort(key=lambda r: r["release_date"] or "9999")
+    write("rdj_filmography.csv", rows, list(rows[0]))
+
+
+# ------------------------------------------------------------------ Iron Man across media (Wikidata)
+def medium(type_label):
+    t = type_label.lower()
+    if "comic" in t or "series" in t and "television" not in t and "video game" not in t or "reprint" in t or "storyline" in t:
+        return "comics"
+    if "film" in t or "quel" in t:
+        return "film"
+    if "television" in t:
+        return "tv"
+    if "video game" in t:
+        return "video game"
+    return "other"
+
+
+def build_media():
+    seen, rows = set(), []
+    for r in read_csv(RAW / "wikidata" / "iron_man_works.csv"):
+        q = qid(r["work"])
+        if q in seen or re.fullmatch(r"Q\d+", r["workLabel"]):
+            continue
+        seen.add(q)
+        rows.append({"title": r["workLabel"], "type": r["typeLabel"], "medium": medium(r["typeLabel"]),
+                     "date": r["date"][:10] if r["date"][:4].isdigit() else "", "wikidata_id": q})
+    rows.sort(key=lambda r: r["date"] or "9999")
+    write("iron_man_media.csv", rows, list(rows[0]))
+
+
+# ------------------------------------------------------------------ Comics (Marvel Database)
+TITLE = re.compile(r"^(?P<series>.+?) Vol (?P<vol>\d+) (?P<issue>.+)$")
+COVER = re.compile(r"^(?P<year>\d{4})(?:, (?P<month>\w+))? Cover Date$")
+MONTH_NUM = {m: i for i, m in enumerate(["January", "February", "March", "April", "May", "June", "July", "August",
+                                          "September", "October", "November", "December"], 1)}
+TONY = "Anthony Stark (Earth-616)"
+DOOM = "Victor von Doom (Earth-616)"
+
+
+def parse_issue(rec):
+    cats = rec["categories"]
+    m = TITLE.match(rec["title"])
+    year = month = ""
+    for c in cats:
+        if cm := COVER.match(c):
+            year = cm["year"]
+            month = MONTH_NUM.get(cm["month"] or "", "") or month
+    chars = sorted(c.removesuffix("/Appearances") for c in cats if c.endswith("(Earth-616)/Appearances"))
+    return {
+        "title": rec["title"],
+        "series": m["series"] if m else rec["title"],
+        "volume": m["vol"] if m else "",
+        "issue": m["issue"] if m else "",
+        "cover_year": year,
+        "cover_month": month,
+        "writers": "|".join(sorted(c.removesuffix("/Writer") for c in cats if c.endswith("/Writer"))),
+        "pencilers": "|".join(sorted(c.removesuffix("/Penciler") for c in cats if c.endswith("/Penciler"))),
+        "armor_models": "|".join(sorted(c.removesuffix("/Appearances") for c in cats
+                                        if c.endswith("/Appearances") and "Armor" in c and "(Earth-616)" not in c)),
+        "doom": str(DOOM in chars).lower(),
+        "n_characters": len(chars),
+        "_chars": chars,
+    }
+
+
+def build_comics():
+    def load(key):
+        path = RAW / "marvel_fandom" / f"{key}_issues.json"
+        return [parse_issue(r) for r in json.loads(path.read_text(encoding="utf-8"))["issues"]] if path.exists() else []
+
+    tony = [i for i in load("tony_stark_616") if i["cover_year"]]  # rule: drop non-comic pages (no cover date)
+    tony.sort(key=lambda i: (i["cover_year"], str(i["cover_month"]).zfill(2), i["title"]))
+    write("comics_tony_issues.csv", tony, [k for k in tony[0] if not k.startswith("_")])
+
+    by_year = defaultdict(lambda: {"issues": 0, "doom_issues": 0, "armors": set()})
+    armor = defaultdict(lambda: {"issues": 0, "years": []})
+    costar = defaultdict(lambda: {"shared_issues": 0, "years": []})
+    for i in tony:
+        y = int(i["cover_year"])
+        b = by_year[y]
+        b["issues"] += 1
+        b["doom_issues"] += i["doom"] == "true"
+        for a in filter(None, i["armor_models"].split("|")):
+            b["armors"].add(a)
+            armor[a]["issues"] += 1
+            armor[a]["years"].append(y)
+        for c in i["_chars"]:
+            if c != TONY:
+                costar[c]["shared_issues"] += 1
+                costar[c]["years"].append(y)
+
+    years = range(min(by_year), max(by_year) + 1)  # rule: include zero years so a line chart has no gaps
+    write("comics_tony_by_year.csv",
+          [{"year": y, "issues": by_year[y]["issues"], "doom_issues": by_year[y]["doom_issues"],
+            "armor_models": len(by_year[y]["armors"])} for y in years],
+          ["year", "issues", "doom_issues", "armor_models"])
+    write("comics_armor_models.csv",
+          sorted(({"armor_model": a, "issues": v["issues"], "first_year": min(v["years"]), "last_year": max(v["years"])}
+                  for a, v in armor.items()), key=lambda r: (r["first_year"], -r["issues"])),
+          ["armor_model", "issues", "first_year", "last_year"])
+    top = sorted(costar.items(), key=lambda kv: -kv[1]["shared_issues"])[:150]  # rule: top 150 co-stars
+    write("comics_tony_costars.csv",
+          [{"character": c, "shared_issues": v["shared_issues"], "first_year": min(v["years"]), "last_year": max(v["years"])}
+           for c, v in top],
+          ["character", "shared_issues", "first_year", "last_year"])
+
+    doom = [i for i in load("victor_von_doom_616") if i["cover_year"]]
+    if doom:
+        d_year = defaultdict(lambda: [0, 0])
+        for i in doom:
+            d_year[int(i["cover_year"])][0] += 1
+            d_year[int(i["cover_year"])][1] += TONY in i["_chars"]
+        ys = range(min(d_year), max(d_year) + 1)
+        write("comics_doom_by_year.csv",
+              [{"year": y, "doom_issues": d_year[y][0], "with_tony": d_year[y][1]} for y in ys],
+              ["year", "doom_issues", "with_tony"])
+
+
+# ------------------------------------------------------------------ Marvel characters (FiveThirtyEight)
+def build_characters():
+    rows = []
+    for r in read_csv(RAW / "fivethirtyeight" / "marvel-wikia-data.csv"):
+        name = r["name"]
+        rows.append({
+            "name": name,
+            "alignment": r["ALIGN"].replace(" Characters", ""),
+            "sex": r["SEX"].replace(" Characters", ""),
+            "alive": r["ALIVE"].replace(" Characters", ""),
+            "appearances": r["APPEARANCES"],
+            "first_year": r["Year"],
+            "is_tony": str(name.startswith("Iron Man (Anthony")).lower(),
+            "is_doom": str(name.startswith("Victor von Doom")).lower(),
+        })
+    write("marvel_characters.csv", rows, list(rows[0]))
+
+
+if __name__ == "__main__":
+    for step in (build_suits, build_films, build_media, build_comics, build_characters):
+        print(step.__name__)
+        step()
+    print("done")

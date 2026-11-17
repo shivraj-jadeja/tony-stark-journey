@@ -1,0 +1,50 @@
+mark,model,era,codename,ability,date_label,date_start,date_end,date_is_interval,value_usd,films
+1,Mark 1,Foundations,,"Flamethrowers, crude rocket booster, bulletproof scrap plating.",Feb 2008,2008-02-15,2008-02-15,false,0,Iron Man
+2,Mark 2,Foundations,,"First true flight prototype, integrated J.A.R.V.I.S. UI.",May 2008,2008-05-15,2008-05-15,false,100000000,Iron Man|Iron Man 2
+3,Mark 3,Foundations,,"Gold-titanium alloy (fixes icing issue), shoulder guns, repulsors.",Jun 2008,2008-06-15,2008-06-15,false,120000000,Iron Man
+4,Mark 4,Foundations,,"Upgraded flight dynamics, manual helmet removal, waste filtration.",Mid 2009,2009-07-01,2009-07-01,false,130000000,Iron Man 2
+5,Mark 5,Foundations,Suitcase,"Suitcase Suit - lightweight, emergency portable armor.",May 2010,2010-05-15,2010-05-15,false,150000000,Iron Man 2
+6,Mark 6,Foundations,,"Triangular Vibranium-core Arc Reactor, high-powered one-time laser.",May 2010,2010-05-15,2010-05-15,false,200000000,Iron Man 2|The Avengers
+7,Mark 7,Foundations,,"Laser-guided homing pod deployment, back-thruster jetpack.",May 2012,2012-05-15,2012-05-15,false,250000000,The Avengers
+8,Mark 8,Prototypes / Specialists,Vanguard,Advanced combat prototype; reinforced Kevlar plating.,May-Dec 2012,2012-05-01,2012-12-28,true,150000000,Iron Man 3
+9,Mark 9,Prototypes / Specialists,Midas,Enhanced high-altitude flight maneuverability.,May-Dec 2012,2012-05-01,2012-12-28,true,160000000,Iron Man 3
+10,Mark 10,Prototypes / Specialists,Brawler,Redesigned chest armor for heavy stabilization.,May-Dec 2012,2012-05-01,2012-12-28,true,160000000,Iron Man 3
+11,Mark 11,Prototypes / Specialists,Defenser,Redesigned helmet UI and reinforced neck guard.,May-Dec 2012,2012-05-01,2012-12-28,true,165000000,Iron Man 3
+12,Mark 12,Prototypes / Specialists,Wrecker,High-mobility brawler prototype built from carbon gold.,May-Dec 2012,2012-05-01,2012-12-28,true,180000000,Iron Man 3
+13,Mark 13,Prototypes / Specialists,Evacuator,High-altitude stealth armor designed for sudden drops.,May-Dec 2012,2012-05-01,2012-12-28,true,190000000,Iron Man 3
+14,Mark 14,Prototypes / Specialists,Striker,Early velocity prototype emphasizing rapid forward thrust.,May-Dec 2012,2012-05-01,2012-12-28,true,175000000,Iron Man 3
+15,Mark 15,Prototypes / Specialists,Sneaky,"Sonic-dampening thrusters, retro-reflective stealth coating.",May-Dec 2012,2012-05-01,2012-12-28,true,250000000,Iron Man 3
+16,Mark 16,Prototypes / Specialists,Nightclub,Complete visual electronic counter-measure stealth; no heavy weapons.,May-Dec 2012,2012-05-01,2012-12-28,true,260000000,Iron Man 3
+17,Mark 17,Prototypes / Specialists,Heartbreaker,Oversized RT Chest Repulsor; fires massive impact beams.,May-Dec 2012,2012-05-01,2012-12-28,true,280000000,Iron Man 3
+18,Mark 18,Prototypes / Specialists,Casanova,Stealth artillery centurion; combines stealth with heavy guns.,May-Dec 2012,2012-05-01,2012-12-28,true,290000000,Iron Man 3
+19,Mark 19,Prototypes / Specialists,Tiger,High-velocity prototype testing secondary repulsor thrusters.,May-Dec 2012,2012-05-01,2012-12-28,true,180000000,Iron Man 3
+20,Mark 20,Prototypes / Specialists,Python,Ultra-long-range endurance suit with massive surplus fuel tanks.,May-Dec 2012,2012-05-01,2012-12-28,true,210000000,Iron Man 3
+21,Mark 21,Prototypes / Specialists,Midas,Full gold-titanium alloy specialized for extreme high-altitude pressure.,May-Dec 2012,2012-05-01,2012-12-28,true,300000000,Iron Man 3
+22,Mark 22,Prototypes / Specialists,Hot Rod,War Machine prototype variant; built for extreme speed.,May-Dec 2012,2012-05-01,2012-12-28,true,200000000,Iron Man 3
+23,Mark 23,Prototypes / Specialists,Shades,Multi-layered heat shielding; built for extreme temperatures.,May-Dec 2012,2012-05-01,2012-12-28,true,220000000,Iron Man 3
+24,Mark 24,Prototypes / Specialists,Tank,Heavy combat armor designed to withstand direct explosive impacts.,May-Dec 2012,2012-05-01,2012-12-28,true,250000000,Iron Man 3
+25,Mark 25,Prototypes / Specialists,Thumper,Dual pneumatic jackhammer arms for crushing concrete/debris.,May-Dec 2012,2012-05-01,2012-12-28,true,320000000,Iron Man 3
+26,Mark 26,Prototypes / Specialists,Gamma,Upgraded jackhammer suit insulated against severe radiation.,May-Dec 2012,2012-05-01,2012-12-28,true,340000000,Iron Man 3
+27,Mark 27,Prototypes / Specialists,Disco,Chameleon armor; shifts color scheme to match surroundings.,May-Dec 2012,2012-05-01,2012-12-28,true,300000000,Iron Man 3
+28,Mark 28,Prototypes / Specialists,Jack,Radiation-resistant zone armor; fully sealed internal oxygen.,May-Dec 2012,2012-05-01,2012-12-28,true,240000000,Iron Man 3
+29,Mark 29,Prototypes / Specialists,Fiddler,Single-arm heavy construction jackhammer with nimble left hand.,May-Dec 2012,2012-05-01,2012-12-28,true,280000000,Iron Man 3
+30,Mark 30,Prototypes / Specialists,Blue Steel,Enhanced energy routing; can overcharge repulsors temporarily.,May-Dec 2012,2012-05-01,2012-12-28,true,220000000,Iron Man 3
+31,Mark 31,Prototypes / Specialists,Piston,High-velocity centurion suit capable of rapid-fire kinetic strikes.,May-Dec 2012,2012-05-01,2012-12-28,true,210000000,Iron Man 3
+32,Mark 32,Prototypes / Specialists,Romeo,Lightweight armor built specifically to optimize chest RT output.,May-Dec 2012,2012-05-01,2012-12-28,true,200000000,Iron Man 3
+33,Mark 33,Prototypes / Specialists,Silver Centurion,Retractable forearm blades; enhanced energy protective field.,May-Dec 2012,2012-05-01,2012-12-28,true,350000000,Iron Man 3
+34,Mark 34,Prototypes / Specialists,Southpaw,Single-arm heavy rescue crane; designed for lifting collapsed bridges.,May-Dec 2012,2012-05-01,2012-12-28,true,270000000,Iron Man 3
+35,Mark 35,Prototypes / Specialists,Red Snapper,Dual heavy extendable rescue claws for collapsed structures.,May-Dec 2012,2012-05-01,2012-12-28,true,300000000,Iron Man 3
+36,Mark 36,Prototypes / Specialists,Peacemaker,Riot control armor; equipped with wide-frequency sonic repulsors.,May-Dec 2012,2012-05-01,2012-12-28,true,280000000,Iron Man 3
+37,Mark 37,Prototypes / Specialists,Hammerhead,Deep-sea exploration; withstands immense ocean trench pressure.,May-Dec 2012,2012-05-01,2012-12-28,true,450000000,Iron Man 3
+38,Mark 38,Prototypes / Specialists,Igor,Ultra-heavy lifting exoskeleton; can support weight up to 100 tons.,May-Dec 2012,2012-05-01,2012-12-28,true,400000000,Iron Man 3
+39,Mark 39,Prototypes / Specialists,Starboost,"Sub-orbital space travel; integrated maneuver thrusters, heavy oxygen.",May-Dec 2012,2012-05-01,2012-12-28,true,600000000,Iron Man 3
+40,Mark 40,Prototypes / Specialists,Shotgun,Hyper-velocity traveler; aerodynamic folding plates to cross Mach 5.,May-Dec 2012,2012-05-01,2012-12-28,true,500000000,Iron Man 3
+41,Mark 41,Prototypes / Specialists,Bones,Skeletonized armor; pieces detach to attack multiple targets at once.,May-Dec 2012,2012-05-01,2012-12-28,true,350000000,Iron Man 3
+42,Mark 42,Prototypes / Specialists,Prodigal Son,Prehensile propulsion; individual parts fly across distances to form.,May-Dec 2012,2012-05-01,2012-12-28,true,625000000,Iron Man 3
+43,Mark 43,Post-Malibu,,Prehensile system perfected; sentry mode automated.,Late 2014,2014-11-01,2014-11-01,false,450000000,Avengers: Age of Ultron
+44,Mark 44,Post-Malibu,Hulkbuster,Deploys from orbit ('Veronica'); modular field repairs.,Late 2014,2014-11-01,2014-11-01,false,1800000000,Avengers: Age of Ultron
+45,Mark 45,Post-Malibu,,First organic-contour design; introduced the F.R.I.D.A.Y. AI interface.,May 2015,2015-05-15,2015-05-15,false,500000000,Avengers: Age of Ultron
+46,Mark 46,Post-Malibu,,Fully retractable helmet into the chest; housing 20+ micro-RT cameras.,Early 2016,2016-02-01,2016-02-01,false,600000000,Captain America: Civil War
+47,Mark 47,Post-Malibu,,Wi-Fi remote piloting via satellite headset over thousands of miles.,Mid 2017,2017-07-01,2017-07-01,false,650000000,Spider-Man: Homecoming
+50,Mark 50,Post-Malibu,,Nanotechnology - housing billions of micro-bots; shifts into shields/blades.,Early 2018,2018-02-01,2018-02-01,false,6000000000,Avengers: Infinity War|Avengers: Endgame
+85,Mark 85,Post-Malibu,,"Ultimate Nano-Armor - integrated energy refiners, Infinity Stone housing.",Oct 2023,2023-10-15,2023-10-15,false,10000000000,Avengers: Endgame

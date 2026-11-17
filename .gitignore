@@ -1,0 +1,11 @@
+# large raw downloads: re-create with `python scripts/fetch_raw.py imdb`
+data/raw/imdb/
+
+# local tooling
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.DS_Store
+Thumbs.db
+*.log

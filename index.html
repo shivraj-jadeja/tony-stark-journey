@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tony Stark's Journey</title>
+  <meta name="description" content="A data story of Tony Stark from the 1963 comics to the MCU to Doctor Doom. CSE 478, Fall 2026.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="preload" as="image" href="assets/img/hero-jericho-1920.webp" imagesrcset="assets/img/hero-jericho-960.webp 960w, assets/img/hero-jericho-1920.webp 1920w" imagesizes="100vw" fetchpriority="high">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/charts.css">
+  <script defer src="js/vendor/d3.v7.9.0.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <!-- Fixed background reactor. Charges as the reader scrolls down, discharges scrolling up (js/core/scrollReactor.js). -->
+  <svg id="reactor-bg" viewBox="-200 -200 400 400" aria-hidden="true">
+    <defs>
+      <radialGradient id="rbGlow">
+        <stop offset="0" stop-color="#ffffff"/>
+        <stop offset=".35" class="live"/>
+        <stop offset="1" class="live" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle r="190" class="house" stroke-width="2"/>
+    <circle r="178" class="house" stroke-width="1"/>
+    <g id="rbCoils"></g>
+    <g class="ticks" id="rbTicks"></g>
+    <circle r="112" class="house" stroke-width="1.5"/>
+    <g class="inner"><circle r="90" class="stroke" stroke-width="1.5" stroke-dasharray="3 7" opacity=".7"/></g>
+    <polygon class="stroke tri" stroke-width="4" points="0,-66 57.2,33 -57.2,33"/>
+    <circle class="core" r="52" fill="url(#rbGlow)"/>
+    <circle r="20" fill="#eaf9ff" opacity=".85"/>
+  </svg>
+
+  <div class="hud" aria-live="polite">
+    <div class="sys">J.A.R.V.I.S. · story telemetry</div>
+    <div class="yr" id="hudYear">1963</div>
+    <div class="lbl" id="hudLabel">Stark Industries</div>
+    <div class="bar"><i></i></div>
+    <div class="row"><span>Reactor charge</span><span id="hudPct">000%</span></div>
+  </div>
+
+  <main>
+    <!-- 0 · Hero -->
+    <header class="hero" data-year="2008" data-label="Stark Industries">
+      <figure class="hero-img">
+        <img src="assets/img/hero-jericho-1920.webp" srcset="assets/img/hero-jericho-960.webp 960w, assets/img/hero-jericho-1920.webp 1920w" sizes="100vw" width="1920" height="1008" fetchpriority="high"
+             alt="Tony Stark in a suit, arms spread wide, as Jericho missiles explode across the mountains behind him">
+        <figcaption>Iron Man (2008) · The Jericho demonstration</figcaption>
+      </figure>
+      <div class="wrap hero-copy">
+        <div class="eyebrow">CSE 478 · Data story · Fall 2026</div>
+        <h1>Tony Stark's<br><span class="gold">Journey</span></h1>
+        <p class="sub">From a 1963 comic book to eleven films to a new mask: Tony Stark, told through his armor, his comics and the data around them.</p>
+        <div class="meta">
+          <div><b data-stat="comicIssues">–</b>Comic issues as Tony</div>
+          <div><b data-stat="suits">–</b>MCU armors</div>
+          <div><b data-stat="tonyFilms">–</b>Films as Tony</div>
+        </div>
+        <p class="cue">Scroll to charge the reactor</p>
+      </div>
+    </header>
+
+    <!-- 1 · Comics origin -->
+    <section class="wrap" id="comics" data-year="1963" data-label="Tales of Suspense #39">
+      <div class="eyebrow">Chapter 1 · The comic book</div>
+      <h2>Born in a 1963 comic, during the Vietnam War.</h2>
+      <div class="prose">
+        <p>Stan Lee, Larry Lieber, Don Heck and Jack Kirby introduced Tony Stark in <strong>Tales of Suspense #39</strong>, cover-dated March 1963. He has been in Marvel comics every decade since.</p>
+      </div>
+      <dl class="spec" id="comicsSpec"></dl>
+      <div class="slot">
+        <b>View slot · Tony in the comics, year by year</b>
+        <span>data/processed/comics_tony_by_year.csv, comics_armor_models.csv · planned: line/area chart of issues per year, armor-model eras overlaid</span>
+      </div>
+    </section>
+
+    <!-- 2 · The cave (MCU) -->
+    <section class="wrap" data-year="2008" data-label="Captured in Kunar">
+      <div class="eyebrow">Chapter 2 · The billionaire and the cave</div>
+      <h2>It started with a box of scraps.</h2>
+      <div class="prose">
+        <p>In 2008 the MCU retells the origin. A convoy ambush in Afghanistan leaves shrapnel in Tony's chest and a terrorist cell demanding a Jericho missile.</p>
+        <p>He builds something else. A miniature arc reactor keeps the shrapnel out of his heart and powers the <strong>Mark I</strong>, the first armor in our dataset and the baseline for every comparison that follows.</p>
+      </div>
+      <dl class="spec" id="mk1Spec"></dl>
+      <p class="note mt">The suit dataset values the Mark I at $0 because it was built from scrap.</p>
+    </section>
+
+    <!-- 3 · Hall of Armor -->
+    <section id="hall" data-year="2008–2023" data-label="Hall of Armor">
+      <div class="wrap">
+        <div class="eyebrow">Chapter 3 · The Hall of Armor</div>
+        <h2>Every suit, wired into one reactor.</h2>
+        <div class="prose">
+          <p>Each slice is one armor, ordered clockwise from Mark 1. Slice length shows its estimated value on a log scale, and the inner ring shows its development era. <strong>Hover or tab to a slice</strong> to pull that armor out of the reactor.</p>
+        </div>
+        <div class="hall-grid">
+          <div>
+            <svg id="reactorChart" viewBox="-330 -330 660 660" role="img" aria-label="Radial chart of every MCU Iron Man suit by era and estimated value"></svg>
+            <div class="legend" id="eraLegend"></div>
+          </div>
+          <aside class="panel suit-panel" id="suitPanel" aria-live="polite"></aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · House Party Protocol -->
+    <section id="surge" data-year="2012" data-label="House Party Protocol">
+      <div class="wrap">
+        <div class="eyebrow">Chapter 4 · After New York</div>
+        <h2>35 armors in eight months.</h2>
+        <div class="prose">
+          <p>After the Battle of New York, Tony stops sleeping. Marks 8 through 42 were all built between May and December 2012. The timeline zooms into that window so the burst is readable.</p>
+          <p>The strip underneath adds a second dataset, worldwide box office for each film Tony appears in, on the same time axis.</p>
+        </div>
+        <div class="chart-box" id="timelineBox">
+          <svg id="timeline" viewBox="0 0 980 580" role="img" aria-label="Timeline of suit build dates and estimated values with film box office"></svg>
+          <div class="tip" id="timelineTip"></div>
+        </div>
+        <p class="note mt">Suits use in-universe build dates. Films use real-world release dates. Inside the shaded window, horizontal position is not a date: the dataset only says "May–Dec 2012".</p>
+      </div>
+    </section>
+
+    <!-- 5 · Comic co-stars -->
+    <section class="wrap" id="network" data-year="1963–2026" data-label="Who Tony shares pages with">
+      <div class="eyebrow">Chapter 5 · The team around him</div>
+      <h2>Sixty years of sharing panels.</h2>
+      <div class="prose">
+        <p>Across thousands of comic issues, some characters keep showing up beside Tony. Doctor Doom is one of them, long before Robert Downey Jr. wore the mask.</p>
+      </div>
+      <div class="slot">
+        <b>View slot · Tony's comic co-star network</b>
+        <span>data/processed/comics_tony_costars.csv, comics_doom_overlap_by_year.csv · planned: network of top co-stars, link width = shared issues, Doom highlighted</span>
+      </div>
+    </section>
+
+    <!-- 6 · The snap -->
+    <section class="wrap" id="snap" data-year="2023" data-label="Endgame">
+      <div class="eyebrow">Chapter 6 · Sacrifice</div>
+      <h2>The last armor held the Infinity Stones.</h2>
+      <div class="prose">
+        <p>The <strong>Mark 85</strong> is the most expensive armor in the dataset, built with nanotech that reforms into whatever the fight needs. In Avengers: Endgame its gauntlet takes the Infinity Stones from Thanos.</p>
+        <p>The man who started by building weapons ends by spending his own life to stop one.</p>
+      </div>
+      <figure class="iam">
+        <img src="assets/img/endgame-i-am-iron-man-1600.webp" srcset="assets/img/endgame-i-am-iron-man-800.webp 800w, assets/img/endgame-i-am-iron-man-1600.webp 1600w" sizes="(max-width: 1120px) 100vw, 1088px" width="1600" height="667" loading="lazy" decoding="async"
+             alt="Tony Stark, helmet gone, raising the nano gauntlet with all six Infinity Stones glowing">
+        <blockquote>"I am Iron Man."</blockquote>
+      </figure>
+      <figure class="snap">
+        <div class="snap-stage" id="snapStage" tabindex="0" role="img" aria-label="Tony Stark snapping with the nano gauntlet. Hover to blow the remaining Mark 85 armor apart and see a scan of the tech underneath."></div>
+        <figcaption>
+          <span class="note">Hover the armor to blow it apart and scan what's underneath. Hover the reactor or a stone to identify it. Tap to toggle on touch screens.</span>
+          <span class="keys" id="snapKeys"></span>
+        </figcaption>
+      </figure>
+      <dl class="spec" id="mk85Spec"></dl>
+    </section>
+
+    <!-- 7 · Doom -->
+    <section class="doom" data-year="2026" data-label="Doomsday">
+      <div class="wrap doom-grid">
+        <div>
+          <div class="eyebrow">Epilogue · A new mask</div>
+          <h2>Robert Downey Jr. returns, as Victor von Doom.</h2>
+          <div class="prose">
+            <p>At San Diego Comic-Con in July 2024, Marvel Studios announced Downey as Doctor Doom in <strong>Avengers: Doomsday</strong>. It is a new character for the actor, not a return of Tony Stark. Our story ends where his armor does.</p>
+          </div>
+          <div class="countdown"><b id="days">–</b><span id="daysLbl">days until Avengers: Doomsday<br>Dec 18, 2026 release</span></div>
+        </div>
+        <figure class="doom-fig">
+          <img src="assets/img/doomsday-doom-868.webp" srcset="assets/img/doomsday-doom-520.webp 520w, assets/img/doomsday-doom-868.webp 868w" sizes="(max-width: 860px) 90vw, 460px" width="868" height="1272" loading="lazy" decoding="async"
+               alt="Doctor Doom in a green hooded cloak and dark armor, standing in green smoke">
+          <figcaption>Avengers: Doomsday · Doctor Doom character art</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- 8 · Sources -->
+    <section class="wrap" data-year="Sources" data-label="Data and credits">
+      <div class="eyebrow">Data and credits</div>
+      <h2>Where every number comes from.</h2>
+      <div class="notes-grid">
+        <div class="panel">
+          <h3>Views</h3>
+          <ul>
+            <li>Arc reactor radial chart<span class="tag done">BUILT</span></li>
+            <li>Zoomed suit timeline + box office<span class="tag done">BUILT</span></li>
+            <li>Mark 85 exploded scan<span class="tag done">BUILT</span></li>
+            <li>Comics issues per year<span class="tag next">SLOT</span></li>
+            <li>Comic co-star network<span class="tag next">SLOT</span></li>
+            <li>Heatmap / Sankey / Armor DNA<span class="tag next">PLANNED</span></li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Datasets</h3>
+          <ul>
+            <li><a href="https://www.kaggle.com/datasets/butleriii/mcu-iron-man-suits-dataset" target="_blank" rel="noopener">MCU Iron Man Suits</a> (Kaggle)</li>
+            <li><a href="https://marvel.fandom.com/wiki/Category:Anthony_Stark_(Earth-616)/Appearances" target="_blank" rel="noopener">Marvel Database</a> comic appearances (CC BY-SA)</li>
+            <li><a href="https://github.com/fivethirtyeight/data/tree/master/comic-characters" target="_blank" rel="noopener">FiveThirtyEight comic characters</a> (CC BY 4.0)</li>
+            <li><a href="https://www.wikidata.org/wiki/Q165524" target="_blank" rel="noopener">Wikidata</a> films, box office, media (CC0)</li>
+            <li><a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener">IMDb ratings</a> (non-commercial)</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Caveats</h3>
+          <ul>
+            <li>Suit values are fan estimates of fictional prices.</li>
+            <li>35 suits share one build interval (May–Dec 2012).</li>
+            <li>Film stills © Marvel Studios, via the MCU Wiki, used for a non-commercial class project.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+    <footer class="wrap">CSE 478 · Shivraj Jadeja, Akshith Kumar Dharavath, Khashim Abdirakhman · Built with D3.js v7</footer>
+  </main>
+</body>
+</html>
