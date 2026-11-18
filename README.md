@@ -39,15 +39,19 @@ scripts/build_processed.py  builds data/processed/ from data/raw/
 | Chapter | Section id | View | Status |
 |---|---|---|---|
 | Hero · Jericho demo (2008) | – | photo + hero numbers | built |
-| 1 · The comic book (1963) | `#comics` | issues per year, armor eras | **slot** |
+| 1 · The comic book (1963) | `#comics` | issues per year area chart (`comicsByYear.js`) | built (base) |
 | 2 · The cave | – | Mark I spec strip | built |
 | 3 · Hall of Armor | `#hall` | arc reactor radial chart (`armorReactor.js`) | built |
 | 4 · After New York | `#surge` | zoomed beeswarm + box office (`suitTimeline.js`) | built |
-| 5 · The team around him | `#network` | comic co-star network | **slot** |
-| 6 · Sacrifice | `#snap` | Mark 85 exploded scan (`snapExplode.js`) | built |
-| Epilogue · Doom | – | photo + countdown | built |
+| 5 · The multiverse | `#loom` | Temporal Loom of Tony variants | **slot** |
+| 6 · Sacrifice | `#snap` | Mark 85 exploded scan (`snapExplode.js`) | built, rebuild planned |
+| Epilogue · Doom | – | full-bleed Doom photo + countdown | built |
 
-Still to plan and assign: heatmap (suit × ability), Sankey (era → specialization), Armor DNA (innovative view).
+Pose backdrops: faint Iron Man / Doom pose images sit behind the Hall of Armor, Loom and Snap headers
+(`assets/img/ghosts/`, `.ghost` in `css/base.css`). The scroll reactor stays underneath them.
+
+Next: Armory Rings (rebuild of the radial chart with MCU + comic armors), then the Temporal Loom (innovative view).
+Other chapters and any extra chart types are open for teammates to extend.
 The course needs at least 5 visualization techniques, one of them innovative.
 
 ## Adding a view
@@ -61,7 +65,8 @@ The course needs at least 5 visualization techniques, one of them innovative.
 
 The first draft lagged. These keep the page smooth:
 
-- **Nothing heavy runs on scroll.** The background reactor and HUD bar are CSS driven by one `--p` variable; chapter labels use an `IntersectionObserver`.
+- **Nothing heavy runs on scroll.** The background reactor and HUD bar are CSS driven by one `--p` variable, written on `#reactor-bg` and `.hud` only (on `:root` it would restyle the whole page every frame); chapter labels use an `IntersectionObserver`.
+- **Decorative images are pre-baked.** Pose backdrops carry their tint and soft edge in the WebP itself; no `mix-blend-mode`, `filter` or `mask-image` at runtime.
 - **Views mount lazily.** Each view's code and data load only when its section is about 800px away.
 - **Animate on canvas when there are many marks.** The snap explosion pre-renders ~250 shard sprites in idle time and runs an animation frame only while shards move.
 - **No `backdrop-filter` and no SVG filters on elements that move.**

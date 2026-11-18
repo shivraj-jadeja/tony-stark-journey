@@ -38,6 +38,17 @@
 .suit-panel .films { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .suit-panel .films span { font: 12px var(--f-mono); border: 1px solid var(--line); padding: 3px 8px; color: var(--fg-soft); }
 
+/* ---------- comicsByYear.js: issues per year (area) + Doom overlap + armor models (line) ---------- */
+#comicsChart { width: 100%; min-width: 760px; display: block; outline: none; }
+#comicsChart:focus-visible { outline: 1px dashed var(--arc); outline-offset: 4px; }
+#comicsChart .axis text { font: 10.5px var(--f-mono); fill: var(--muted); }
+#comicsChart .axis path, #comicsChart .axis line { stroke: #2a3947; }
+#comicsChart .grid line { stroke: #18222c; }
+#comicsChart .ttl { font: 10.5px var(--f-mono); letter-spacing: .1em; fill: var(--muted); text-transform: uppercase; }
+#comicsChart .rule { stroke: var(--fg); stroke-opacity: .45; pointer-events: none; }
+#comicsChart circle { stroke: var(--bg); stroke-width: 1.5; pointer-events: none; }
+#comicsLegend button[aria-pressed="false"] { opacity: .4; }
+
 /* ---------- suitTimeline.js: zoomed beeswarm + box-office strip ---------- */
 .chart-box { position: relative; margin-top: 34px; overflow-x: auto; }
 #timeline { width: 100%; min-width: 760px; display: block; }

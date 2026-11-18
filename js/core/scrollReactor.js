@@ -1,6 +1,8 @@
 // Scroll-driven background reactor and HUD.
 // Performance: the only per-frame work is writing one CSS variable (--p). Coil lighting, ring rotation,
 // core size and the HUD bar are all CSS calc() off --p, so the browser composites them without layout.
+// --p is written on the reactor and the HUD only, never on :root: a custom property on :root is
+// inherited by every element, so changing it there restyles the whole page on every scroll frame.
 // Chapter labels come from an IntersectionObserver instead of measuring sections on every scroll.
 const NS = "http://www.w3.org/2000/svg";
 const COILS = 12;
@@ -8,6 +10,7 @@ const DOOM_FROM = 0.8, DOOM_TO = 0.9;
 
 export function initScrollReactor() {
   const root = document.documentElement;
+  const pTargets = [document.getElementById("reactor-bg"), document.querySelector(".hud")].filter(Boolean);
   const coils = document.getElementById("rbCoils");
   const ticks = document.getElementById("rbTicks");
   const pct = document.getElementById("hudPct");
@@ -45,7 +48,8 @@ export function initScrollReactor() {
     const p = max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0;
     if (Math.abs(p - lastP) < 0.0005) return;
     lastP = p;
-    root.style.setProperty("--p", p.toFixed(4));
+    const pv = p.toFixed(4);
+    for (const el of pTargets) el.style.setProperty("--p", pv);
     const n = Math.round(p * 100);
     if (n !== lastPct) { lastPct = n; pct.textContent = String(n).padStart(3, "0") + "%"; }
     const mix = Math.min(1, Math.max(0, (p - DOOM_FROM) / (DOOM_TO - DOOM_FROM)));

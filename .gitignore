@@ -9,3 +9,10 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# personal planning notes (review copies, not for the team repo)
+# Handoffs/ is NOT ignored: session handoffs are shared with teammates.
+/Plan.md
+/Rule.md
+/CLAUDE.md
+/design/

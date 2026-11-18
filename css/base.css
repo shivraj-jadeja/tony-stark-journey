@@ -15,7 +15,7 @@
   --doom-deep: #0a1a0f;
   --doom-line: #24502e;
   --live: #5fd8ff;          /* reactor color; JS shifts it toward Doom green at the end */
-  --p: 0;                   /* scroll progress 0..1, written once per frame by scrollReactor.js */
+  --p: 0;                   /* scroll progress 0..1; default only. scrollReactor.js writes it on #reactor-bg and .hud */
   --f-display: "Chakra Petch", "Arial Narrow", sans-serif;
   --f-body: "Barlow", "Segoe UI", system-ui, sans-serif;
   --f-mono: "JetBrains Mono", Consolas, monospace;
@@ -130,14 +130,21 @@ p { margin: 0; }
 .slot b { font: 600 18px var(--f-display); }
 .slot span { font: 12px var(--f-mono); color: var(--muted); }
 
-/* doom */
-.doom { background: linear-gradient(180deg, rgba(10,26,15,0) 0%, var(--doom-deep) 14%, var(--doom-deep) 86%, rgba(10,26,15,0) 100%); }
+/* pose weave: Iron Man / Doom ghosts behind section headers (design/07).
+   Pre-baked WebP with alpha (tint + feathered edge in the pixels), so no blend modes or filters run here.
+   They sit above the fixed scroll reactor (z 0) and below the text (z 2); the reactor shows through
+   their transparent parts. The right ghost is lower and fainter so it sits inside the reactor's glow. */
+.has-ghosts { position: relative; }
+.has-ghosts > .wrap { position: relative; z-index: 2; }
+.ghost { position: absolute; z-index: 1; top: -20px; width: 58vw; max-width: 980px; height: auto; pointer-events: none; user-select: none; }
+.ghost.l { left: -8vw; opacity: .38; }
+.ghost.r { right: -6vw; top: 10px; opacity: .30; }
+
+/* doom epilogue: full-bleed, same size as the Jericho hero (reuses .hero-img). Doom stays alone here. */
 .doom h2, .doom .eyebrow { color: var(--doom); }
 .doom .prose { color: #b7c7b4; }
-.doom-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: center; }
-.doom-fig { margin: 0; }
-.doom-fig img { display: block; width: 100%; max-width: 460px; height: auto; margin-left: auto; -webkit-mask-image: radial-gradient(ellipse 70% 72% at 50% 46%, #000 55%, transparent 100%); mask-image: radial-gradient(ellipse 70% 72% at 50% 46%, #000 55%, transparent 100%); }
-.doom-fig figcaption { font: 11px var(--f-mono); color: #6f8a6c; text-align: right; letter-spacing: .06em; }
+.doom-hero { position: relative; padding-block: 0 12vh; }
+.doom-copy { position: relative; margin-top: -18vh; }
 .countdown { display: inline-flex; gap: 14px; align-items: baseline; margin-top: 30px; border: 1px solid var(--doom-line); background: rgba(5,14,8,.6); padding: 12px 18px; }
 .countdown b { font: 700 44px/1 var(--f-display); color: var(--doom); font-variant-numeric: tabular-nums; }
 .countdown span { font: 12px var(--f-mono); color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
@@ -153,9 +160,9 @@ footer { padding-block: 40px 140px; color: var(--muted); font-size: 13px; }
 :focus-visible { outline: 1px dashed var(--arc); outline-offset: 4px; }
 
 @media (max-width: 860px) {
-  .doom-grid { grid-template-columns: minmax(0, 1fr); }
-  .doom-fig img { margin: 0 auto; }
-  .doom-fig figcaption { text-align: center; }
+  .ghost { width: 100vw; opacity: .22; }
+  .ghost.l { left: -10vw; }
+  .ghost.r { display: none; }
   #reactor-bg { right: 50%; translate: 50% -50%; width: 130vmin; height: 130vmin; }
   .hud { width: auto; right: max(16px, env(safe-area-inset-right, 0px)); padding: 6px 10px; }
   .hud .yr { font-size: 18px; display: inline; margin-right: 8px; }

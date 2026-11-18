@@ -65,16 +65,19 @@
     </header>
 
     <!-- 1 · Comics origin -->
-    <section class="wrap" id="comics" data-year="1963" data-label="Tales of Suspense #39">
-      <div class="eyebrow">Chapter 1 · The comic book</div>
-      <h2>Born in a 1963 comic, during the Vietnam War.</h2>
-      <div class="prose">
-        <p>Stan Lee, Larry Lieber, Don Heck and Jack Kirby introduced Tony Stark in <strong>Tales of Suspense #39</strong>, cover-dated March 1963. He has been in Marvel comics every decade since.</p>
-      </div>
-      <dl class="spec" id="comicsSpec"></dl>
-      <div class="slot">
-        <b>View slot · Tony in the comics, year by year</b>
-        <span>data/processed/comics_tony_by_year.csv, comics_armor_models.csv · planned: line/area chart of issues per year, armor-model eras overlaid</span>
+    <section id="comics" data-year="1963" data-label="Tales of Suspense #39">
+      <div class="wrap">
+        <div class="eyebrow">Chapter 1 · The comic book</div>
+        <h2>Born in a 1963 comic, during the Vietnam War.</h2>
+        <div class="prose">
+          <p>Stan Lee, Larry Lieber, Don Heck and Jack Kirby introduced Tony Stark in <strong>Tales of Suspense #39</strong>, cover-dated March 1963. He has been in Marvel comics every decade since.</p>
+        </div>
+        <dl class="spec" id="comicsSpec"></dl>
+        <div class="chart-box" id="comicsBox">
+          <svg id="comicsChart" viewBox="0 0 980 420" role="img" aria-label="Area chart of Tony Stark comic issues per year since 1963, issues with Doctor Doom, and distinct armor models per year"></svg>
+          <div class="tip" id="comicsTip"></div>
+        </div>
+        <div class="legend" id="comicsLegend"></div>
       </div>
     </section>
 
@@ -91,7 +94,9 @@
     </section>
 
     <!-- 3 · Hall of Armor -->
-    <section id="hall" data-year="2008–2023" data-label="Hall of Armor">
+    <section id="hall" class="has-ghosts" data-year="2008–2023" data-label="Hall of Armor">
+      <img class="ghost l" src="assets/img/ghosts/pose1-ironman.webp" width="900" height="504" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <img class="ghost r" src="assets/img/ghosts/pose1-doom.webp" width="900" height="382" alt="" aria-hidden="true" loading="lazy" decoding="async">
       <div class="wrap">
         <div class="eyebrow">Chapter 3 · The Hall of Armor</div>
         <h2>Every suit, wired into one reactor.</h2>
@@ -125,21 +130,25 @@
       </div>
     </section>
 
-    <!-- 5 · Comic co-stars -->
-    <section class="wrap" id="network" data-year="1963–2026" data-label="Who Tony shares pages with">
-      <div class="eyebrow">Chapter 5 · The team around him</div>
-      <h2>Sixty years of sharing panels.</h2>
-      <div class="prose">
-        <p>Across thousands of comic issues, some characters keep showing up beside Tony. Doctor Doom is one of them, long before Robert Downey Jr. wore the mask.</p>
-      </div>
-      <div class="slot">
-        <b>View slot · Tony's comic co-star network</b>
-        <span>data/processed/comics_tony_costars.csv, comics_doom_overlap_by_year.csv · planned: network of top co-stars, link width = shared issues, Doom highlighted</span>
+    <!-- 5 · Temporal Loom -->
+    <section id="loom" class="has-ghosts" data-year="Multiverse" data-label="Temporal Loom">
+      <img class="ghost l" src="assets/img/ghosts/pose2-ironman.webp" width="900" height="504" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <img class="ghost r" src="assets/img/ghosts/pose2-doom.webp" width="900" height="376" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <div class="wrap">
+        <div class="eyebrow">Chapter 5 · The multiverse</div>
+        <h2>Eight hundred Tonys.</h2>
+        <div class="slot">
+          <b>View slot · Temporal Loom</b>
+          <span>every Tony Stark variant in the Marvel Database as a thread through era rings · design/04 · next after the Armory Rings</span>
+        </div>
       </div>
     </section>
 
     <!-- 6 · The snap -->
-    <section class="wrap" id="snap" data-year="2023" data-label="Endgame">
+    <section id="snap" class="has-ghosts" data-year="2023" data-label="Endgame">
+      <img class="ghost l" src="assets/img/ghosts/pose3-ironman.webp" width="900" height="504" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <img class="ghost r" src="assets/img/ghosts/pose3-doom.webp" width="900" height="504" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <div class="wrap">
       <div class="eyebrow">Chapter 6 · Sacrifice</div>
       <h2>The last armor held the Infinity Stones.</h2>
       <div class="prose">
@@ -159,24 +168,24 @@
         </figcaption>
       </figure>
       <dl class="spec" id="mk85Spec"></dl>
+      </div>
     </section>
 
     <!-- 7 · Doom -->
-    <section class="doom" data-year="2026" data-label="Doomsday">
-      <div class="wrap doom-grid">
-        <div>
-          <div class="eyebrow">Epilogue · A new mask</div>
-          <h2>Robert Downey Jr. returns, as Victor von Doom.</h2>
-          <div class="prose">
-            <p>At San Diego Comic-Con in July 2024, Marvel Studios announced Downey as Doctor Doom in <strong>Avengers: Doomsday</strong>. It is a new character for the actor, not a return of Tony Stark. Our story ends where his armor does.</p>
-          </div>
-          <div class="countdown"><b id="days">–</b><span id="daysLbl">days until Avengers: Doomsday<br>Dec 18, 2026 release</span></div>
+    <!-- Doom stays alone here: no Iron Man ghost. Full-bleed, the same size as the Jericho hero. -->
+    <section class="doom doom-hero" data-year="2026" data-label="Doomsday">
+      <figure class="hero-img">
+        <img src="assets/img/doomsday-armsspread-1880.webp" srcset="assets/img/doomsday-armsspread-940.webp 940w, assets/img/doomsday-armsspread-1880.webp 1880w" sizes="100vw" width="1880" height="798" loading="lazy" decoding="async"
+             alt="Doctor Doom, hooded and masked, spreading his arms wide in front of towering Doombots and a hazy sun">
+        <figcaption>Avengers: Doomsday · trailer</figcaption>
+      </figure>
+      <div class="wrap doom-copy">
+        <div class="eyebrow">Epilogue · A new mask</div>
+        <h2>Robert Downey Jr. returns, as Victor von Doom.</h2>
+        <div class="prose">
+          <p>At San Diego Comic-Con in July 2024, Marvel Studios announced Downey as Doctor Doom in <strong>Avengers: Doomsday</strong>. It is a new character for the actor, not a return of Tony Stark. Our story ends where his armor does.</p>
         </div>
-        <figure class="doom-fig">
-          <img src="assets/img/doomsday-doom-868.webp" srcset="assets/img/doomsday-doom-520.webp 520w, assets/img/doomsday-doom-868.webp 868w" sizes="(max-width: 860px) 90vw, 460px" width="868" height="1272" loading="lazy" decoding="async"
-               alt="Doctor Doom in a green hooded cloak and dark armor, standing in green smoke">
-          <figcaption>Avengers: Doomsday · Doctor Doom character art</figcaption>
-        </figure>
+        <div class="countdown"><b id="days">–</b><span id="daysLbl">days until Avengers: Doomsday<br>Dec 18, 2026 release</span></div>
       </div>
     </section>
 
@@ -188,12 +197,11 @@
         <div class="panel">
           <h3>Views</h3>
           <ul>
-            <li>Arc reactor radial chart<span class="tag done">BUILT</span></li>
+            <li>Comics issues per year<span class="tag done">BUILT</span></li>
+            <li>Arc reactor radial chart<span class="tag next">REBUILD</span></li>
             <li>Zoomed suit timeline + box office<span class="tag done">BUILT</span></li>
-            <li>Mark 85 exploded scan<span class="tag done">BUILT</span></li>
-            <li>Comics issues per year<span class="tag next">SLOT</span></li>
-            <li>Comic co-star network<span class="tag next">SLOT</span></li>
-            <li>Heatmap / Sankey / Armor DNA<span class="tag next">PLANNED</span></li>
+            <li>Temporal Loom (variants)<span class="tag next">PLANNED</span></li>
+            <li>Mark 85 exploded scan<span class="tag next">REBUILD</span></li>
           </ul>
         </div>
         <div class="panel">

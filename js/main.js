@@ -18,7 +18,11 @@ loadFilms().then(films => fillStat("tonyFilms", films.filter(f => f.asTony && f.
 loadComicsByYear().then(rows => fillStat("comicIssues", d3.sum(rows, d => d.issues).toLocaleString("en-US")));
 
 // Chapter 1 · comics
-mountWhenNear("#comics", async () => renderSpec($("#comicsSpec"), comicsSpecRows(await loadComicsByYear())));
+mountWhenNear("#comics", async () => {
+  const [{ mountComicsByYear }, rows] = await Promise.all([import("./views/comicsByYear.js"), loadComicsByYear()]);
+  renderSpec($("#comicsSpec"), comicsSpecRows(rows));
+  mountComicsByYear({ svg: $("#comicsChart"), box: $("#comicsBox"), tip: $("#comicsTip"), legend: $("#comicsLegend"), rows });
+});
 
 // Chapter 2 · Mark I
 mountWhenNear("#mk1Spec", async () => {
