@@ -94,19 +94,21 @@
     </section>
 
     <!-- 3 · Hall of Armor -->
-    <section id="hall" class="has-ghosts" data-year="2008–2023" data-label="Hall of Armor">
+    <section id="hall" class="has-ghosts" data-year="1963–2023" data-label="Hall of Armor">
       <img class="ghost l" src="assets/img/ghosts/pose1-ironman.webp" width="900" height="504" alt="" aria-hidden="true" loading="lazy" decoding="async">
       <img class="ghost r" src="assets/img/ghosts/pose1-doom.webp" width="900" height="382" alt="" aria-hidden="true" loading="lazy" decoding="async">
       <div class="wrap">
         <div class="eyebrow">Chapter 3 · The Hall of Armor</div>
         <h2>Every suit, wired into one reactor.</h2>
         <div class="prose">
-          <p>Each slice is one armor, ordered clockwise from Mark 1. Slice length shows its estimated value on a log scale, and the inner ring shows its development era. <strong>Hover or tab to a slice</strong> to pull that armor out of the reactor.</p>
+          <p>Every armor Tony wore, on screen and in the main comics. The right half is the MCU, the left half the comics. The outer ring holds each side's 12 most-seen armors, sized by how often they appear; the inner ring holds the rest. The broken arcs outside are armors he built for someone else.</p>
+          <p><strong>Sweep across the reactor</strong>, tap, or focus it and use the arrow keys to pull an armor out.</p>
         </div>
         <div class="hall-grid">
           <div>
-            <svg id="reactorChart" viewBox="-330 -330 660 660" role="img" aria-label="Radial chart of every MCU Iron Man suit by era and estimated value"></svg>
-            <div class="legend" id="eraLegend"></div>
+            <svg id="armoryChart" viewBox="-360 -360 720 720" tabindex="0" role="img"
+                 aria-label="Arc reactor of every armor Tony Stark wore: MCU on the right, main comics on the left, outer ring the 12 most-seen on each side, inner ring the rest, outside arcs the armors he built for others. Use the arrow keys to move between armors."></svg>
+            <button class="snd" id="gearSound" type="button" aria-pressed="false">Gear sound · off</button>
           </div>
           <aside class="panel suit-panel" id="suitPanel" aria-live="polite"></aside>
         </div>

@@ -16,7 +16,7 @@ the limit, so the Wikidata step can take a while.
 | Folder | Source | What it gives the story | License |
 |---|---|---|---|
 | `raw/kaggle/` | [MCU Iron Man Suits](https://www.kaggle.com/datasets/butleriii/mcu-iron-man-suits-dataset) (49 suits) | MCU armor: era, codename, ability, build date, estimated value, films | Kaggle dataset page; committed by hand (Kaggle needs a login) |
-| `raw/marvel_fandom/` | [Marvel Database](https://marvel.fandom.com/wiki/Category:Anthony_Stark_(Earth-616)/Appearances), every issue in the Tony Stark (Earth-616) and Victor von Doom (Earth-616) appearance categories, with each issue's categories | Comic issues per year, writers, armor models, co-appearing characters, Doom overlap | CC BY-SA 3.0 |
+| `raw/marvel_fandom/` | [Marvel Database](https://marvel.fandom.com/wiki/Category:Anthony_Stark_(Earth-616)/Appearances), every issue in the Tony Stark (Earth-616) and Victor von Doom (Earth-616) appearance categories, with each issue's categories; plus every page in [Category:Iron Man Armor](https://marvel.fandom.com/wiki/Category:Iron_Man_Armor) (wikitext + appearance count) | Comic issues per year, writers, armor models, co-appearing characters, Doom overlap, the Armory Rings | CC BY-SA 3.0 |
 | `raw/fivethirtyeight/` | [FiveThirtyEight comic-characters](https://github.com/fivethirtyeight/data/tree/master/comic-characters) | All ~16,000 Marvel characters with appearance counts and first year; Tony and Doom in context | CC BY 4.0 |
 | `raw/wikidata/` | [Wikidata](https://query.wikidata.org/) SPARQL exports (queries are in `fetch_raw.py`) | MCU films (release, box office, IMDb id), Robert Downey Jr.'s filmography and roles, Iron Man across media | CC0 |
 | `raw/imdb/` | [IMDb non-commercial datasets](https://developer.imdb.com/non-commercial-datasets/), `title.ratings` | Film ratings and vote counts | Non-commercial use; git-ignored (9 MB), re-fetch with `fetch_raw.py imdb` |
@@ -78,6 +78,30 @@ some comic issues. Use it for "Iron Man across media", not for issue counts.
 
 ### `comics_doom_by_year.csv`
 `year, doom_issues, with_tony`
+
+### `armors_all.csv`: every armor Tony wore (MCU + main comics), plus the ones he built for others
+Built by `build_armors()` from `raw/marvel_fandom/iron_man_armor_pages.json` (every page in Category:Iron Man Armor,
+with each page's appearance count) joined to `suits.csv`, `comics_armor_models.csv` and `films.csv`.
+
+| Column | Meaning | Abstract type |
+|---|---|---|
+| `id` | Marvel Database page title | categorical identifier |
+| `name` | "Mark 42", "Model 37", "War Machine Armor MK III" | categorical |
+| `universe` | MCU (Earth-199999) · Comics (Earth-616) | nominal |
+| `ring` | outer (12 most-seen per universe) · inner (the rest) · others (built for someone else) | nominal, derived |
+| `rank` | rank by appearances within its universe | ordinal, derived |
+| `group` | wearer, for `others` (War Machine, Rescue, S.H.I.E.L.D. Alpha Team, Mister Fantastic) | nominal |
+| `appearances`, `unit` | MCU: size of the page's "/Appearances" category; comics: issues with Tony (`comics_armor_models.csv`) | quantitative (count) |
+| `mark`, `codename`, `era`, `ability`, `built`, `value_usd`, `films` | from `suits.csv` (MCU only; value is a fan estimate) | mixed |
+| `first_appearance`, `first_year`, `last_year` | first issue/film; years from `comics_armor_models.csv` or `films.csv` | text, temporal |
+| `lead_designer`, `creators` | infobox: in-story designer, real-world creators | text |
+| `weight`, `height` | infobox, only where the page gives one (7 and 5 of 272 pages) | text |
+| `capabilities` | `{{Power|…}}` tags in the page text, `|`-separated (25 of 272 pages) | multivalued nominal |
+| `source_url` | Marvel Database page | URL |
+
+Rules: Earth-616 and Earth-199999 only. "Tony wore it" = Anthony Stark in CurrentOwner/PreviousOwners, or the owner is
+written as "Iron Man", or no owner is listed and Tony is lead designer (Models 8, 61, YT1). Ties in the top-12 rank go to
+the higher estimated value. Nothing is filled in: blank fields stay blank.
 
 ### `marvel_characters.csv`: FiveThirtyEight table, trimmed
 `name, alignment, sex, alive, appearances, first_year, is_tony, is_doom`. Its counts stop in 2014; the Marvel

@@ -4,7 +4,7 @@ Standard library only, so it runs on any Python 3.9+ without installs:
 
     python scripts/fetch_raw.py            # fetch everything missing
     python scripts/fetch_raw.py --force    # re-download everything
-    python scripts/fetch_raw.py fandom     # fetch one source (fandom, wikidata, fivethirtyeight, imdb)
+    python scripts/fetch_raw.py fandom     # fetch one source (fandom, armor, wikidata, fivethirtyeight, imdb)
 
 Raw files are kept exactly as downloaded. Cleaning happens in build_processed.py.
 The Kaggle suit CSV cannot be fetched without a Kaggle login, so it is committed by hand
@@ -177,7 +177,46 @@ def fetch_fandom():
         save(out, json.dumps(payload, ensure_ascii=False, indent=0).encode("utf-8"))
 
 
-SOURCES = {"fivethirtyeight": fetch_fivethirtyeight, "wikidata": fetch_wikidata, "imdb": fetch_imdb, "fandom": fetch_fandom}
+def fetch_armor_pages():
+    """Wikitext of every page in Category:Iron Man Armor (all realities; the build step filters), CC BY-SA 3.0,
+    plus each armor's appearance count (size of its "<page>/Appearances" category).
+    About 272 pages: one list request, then batches of 50. Runs offline, never in the browser."""
+    print("Marvel Database armor pages")
+    out = RAW / "marvel_fandom" / "iron_man_armor_pages.json"
+    if not needed(out):
+        return
+    titles, cont = [], {}
+    while True:
+        data = json.loads(get(FANDOM_API, {"action": "query", "format": "json", "list": "categorymembers",
+                                           "cmtitle": "Category:Iron Man Armor", "cmnamespace": 0, "cmlimit": 500, **cont}))
+        titles += [m["title"] for m in data["query"]["categorymembers"]]
+        if "continue" not in data:
+            break
+        cont = data["continue"]
+        time.sleep(0.35)
+    pages = {}
+    for i in range(0, len(titles), 50):
+        data = json.loads(get(FANDOM_API, {"action": "query", "format": "json", "formatversion": 2, "prop": "revisions",
+                                           "rvprop": "content", "rvslots": "main", "titles": "|".join(titles[i:i + 50])}))
+        for p in data["query"]["pages"]:
+            if "revisions" in p:
+                pages[p["title"]] = p["revisions"][0]["slots"]["main"]["content"]
+        time.sleep(0.35)  # be polite to the wiki
+    counts, names = {}, sorted(pages)
+    for i in range(0, len(names), 50):
+        cats = [f"Category:{t}/Appearances" for t in names[i:i + 50]]
+        data = json.loads(get(FANDOM_API, {"action": "query", "format": "json", "formatversion": 2,
+                                           "prop": "categoryinfo", "titles": "|".join(cats)}))
+        for p in data["query"]["pages"]:
+            counts[p["title"].removeprefix("Category:").removesuffix("/Appearances")] = p.get("categoryinfo", {}).get("pages", 0)
+        time.sleep(0.35)
+    payload = {"source": "https://marvel.fandom.com/wiki/Category:Iron_Man_Armor", "fetched": time.strftime("%Y-%m-%d"),
+               "pages": [{"title": t, "appearances": counts.get(t, 0), "wikitext": pages[t]} for t in names]}
+    save(out, json.dumps(payload, ensure_ascii=False, indent=0).encode("utf-8"))
+
+
+SOURCES = {"fivethirtyeight": fetch_fivethirtyeight, "wikidata": fetch_wikidata, "imdb": fetch_imdb, "fandom": fetch_fandom,
+           "armor": fetch_armor_pages}
 
 if __name__ == "__main__":
     picked = [a for a in sys.argv[1:] if not a.startswith("--")] or list(SOURCES)

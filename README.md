@@ -41,7 +41,7 @@ scripts/build_processed.py  builds data/processed/ from data/raw/
 | Hero · Jericho demo (2008) | – | photo + hero numbers | built |
 | 1 · The comic book (1963) | `#comics` | issues per year area chart (`comicsByYear.js`) | built (base) |
 | 2 · The cave | – | Mark I spec strip | built |
-| 3 · Hall of Armor | `#hall` | arc reactor radial chart (`armorReactor.js`) | built |
+| 3 · Hall of Armor | `#hall` | Armory Rings: every armor Tony wore, MCU + comics (`armoryRings.js`) | built |
 | 4 · After New York | `#surge` | zoomed beeswarm + box office (`suitTimeline.js`) | built |
 | 5 · The multiverse | `#loom` | Temporal Loom of Tony variants | **slot** |
 | 6 · Sacrifice | `#snap` | Mark 85 exploded scan (`snapExplode.js`) | built, rebuild planned |

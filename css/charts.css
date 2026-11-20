@@ -1,18 +1,21 @@
 /* Chart and interactive-view styles. One block per view; class names match the module in js/views/. */
 
-/* ---------- armorReactor.js: radial "arc reactor" of every MCU armor ---------- */
+/* ---------- armoryRings.js: every armor Tony wore, as arc-reactor segments ---------- */
 .hall-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: center; margin-top: 36px; }
-#reactorChart { width: 100%; max-width: 640px; display: block; margin: 0 auto; overflow: visible; }
-#reactorChart .slice { cursor: pointer; transition: transform .28s cubic-bezier(.2,.8,.2,1), opacity .2s; outline: none; }
-#reactorChart .slice path { stroke: var(--bg); stroke-width: 1; }
-#reactorChart .slice.on path { stroke: #fff; stroke-width: 2; }
-#reactorChart .slice:focus-visible path { stroke: #fff; stroke-width: 2; }
-#reactorChart .slice.dim { opacity: .18; }
-#reactorChart .grid circle { fill: none; stroke: #2a3947; stroke-dasharray: 2 4; }
-#reactorChart .grid text, #reactorChart .mk { font: 9.5px var(--f-mono); fill: var(--muted); }
-#reactorChart .mk.on { fill: var(--fg); font-weight: 600; }
-#reactorChart .core-n { font: 700 46px var(--f-display); fill: var(--fg); }
-#reactorChart .core-l { font: 10px var(--f-mono); letter-spacing: .2em; fill: var(--muted); }
+#armoryChart { width: 100%; max-width: 680px; display: block; margin: 0 auto; overflow: visible; touch-action: pan-y; outline: none; cursor: crosshair; }
+#armoryChart:focus-visible { outline: 1px dashed var(--arc); outline-offset: 6px; }
+#armoryChart .piece { stroke: var(--bg); stroke-width: 1; }
+#armoryChart .piece.on { stroke: #fff; stroke-width: 1.6; }
+#armoryChart .lbl { font: 9.5px var(--f-mono); fill: var(--fg-soft); pointer-events: none; }
+#armoryChart .lbl.on { fill: var(--fg); font-weight: 600; }
+#armoryChart .grp { font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; pointer-events: none; }
+#armoryChart .half { font: 600 11px var(--f-mono); letter-spacing: .2em; pointer-events: none; }
+#armoryChart .core circle { fill: #0e2230; stroke: var(--arc); stroke-width: 1.5; }
+#armoryChart .core-n { font: 700 40px var(--f-display); fill: var(--fg); }
+#armoryChart .core-l { font: 9.5px var(--f-mono); letter-spacing: .2em; fill: var(--muted); }
+.snd { display: block; margin: 16px auto 0; font: 600 11.5px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: transparent; border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; }
+.snd[aria-pressed="true"] { color: var(--arc); border-color: var(--arc); }
+.snd:hover, .snd:focus-visible { color: var(--fg); border-color: var(--fg); outline: none; }
 .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; justify-content: center; }
 .legend button, .keys button {
   font: 500 12px var(--f-mono); letter-spacing: .06em; color: var(--fg); background: transparent;
@@ -24,10 +27,6 @@
 .keys button { font-size: 11px; text-transform: uppercase; padding: 5px 9px; }
 .keys i { border-radius: 50%; width: 9px; height: 9px; }
 
-.suit-panel .panel-top { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 18px; align-items: center; }
-.suit-panel .portrait { aspect-ratio: 5 / 6; max-width: 100%; border: 1px solid var(--line); background: radial-gradient(circle at 50% 40%, #16222e, #0a0f15 70%); display: grid; place-items: center; position: relative; }
-.suit-panel .portrait svg { width: 74%; }
-.suit-panel .portrait span { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; font: 9px var(--f-mono); color: var(--muted); letter-spacing: .1em; }
 .suit-panel .model { font: 700 34px/1 var(--f-display); }
 .suit-panel .code { font: 13px var(--f-mono); color: var(--gold); margin-top: 6px; }
 .suit-panel .chip { display: inline-block; font: 600 10.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; margin-top: 10px; color: var(--bg); }
@@ -37,6 +36,7 @@
 .suit-panel dd { margin: 3px 0 0; font: 600 19px var(--f-display); font-variant-numeric: tabular-nums; }
 .suit-panel .films { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .suit-panel .films span { font: 12px var(--f-mono); border: 1px solid var(--line); padding: 3px 8px; color: var(--fg-soft); }
+.suit-panel .src { font: 12px/1.5 var(--f-mono); color: var(--muted); margin-top: 12px; }
 
 /* ---------- comicsByYear.js: issues per year (area) + Doom overlap + armor models (line) ---------- */
 #comicsChart { width: 100%; min-width: 760px; display: block; outline: none; }
@@ -117,6 +117,5 @@
   .hall-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
-  .suit-panel .panel-top { grid-template-columns: 84px minmax(0, 1fr); }
-  .suit-panel dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .suit-panel dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

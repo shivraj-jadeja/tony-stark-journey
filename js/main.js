@@ -1,7 +1,7 @@
 // Entry point. Starts the scroll reactor right away, then mounts each view only when its section
 // is about to scroll into view (core/lazy.js). To add a view: write js/views/<name>.js exporting a
 // mount function, give its section an id in index.html, and register it below.
-import { loadComicsByYear, loadFilms, loadSuits } from "./core/data.js";
+import { loadArmors, loadComicsByYear, loadFilms, loadSuits } from "./core/data.js";
 import { mountWhenNear } from "./core/lazy.js";
 import { initScrollReactor } from "./core/scrollReactor.js";
 import { selectSuit } from "./core/selection.js";
@@ -30,10 +30,10 @@ mountWhenNear("#mk1Spec", async () => {
   renderSpec($("#mk1Spec"), suitSpecRows(suits.find(s => s.mark === 1), suits.length));
 });
 
-// Chapter 3 · Hall of Armor
+// Chapter 3 · Hall of Armor: Armory Rings (opens on Mark 42, shared with the timeline)
 mountWhenNear("#hall", async () => {
-  const [{ mountArmorReactor }, suits] = await Promise.all([import("./views/armorReactor.js"), loadSuits()]);
-  mountArmorReactor({ svg: $("#reactorChart"), legend: $("#eraLegend"), panel: $("#suitPanel"), suits });
+  const [{ mountArmoryRings }, armors, suits] = await Promise.all([import("./views/armoryRings.js"), loadArmors(), loadSuits()]);
+  mountArmoryRings({ svg: $("#armoryChart"), panel: $("#suitPanel"), soundButton: $("#gearSound"), armors, suits });
   selectSuit(suits.find(s => s.mark === 42));
 });
 

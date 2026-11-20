@@ -312,8 +312,109 @@ def build_characters():
     write("marvel_characters.csv", rows, list(rows[0]))
 
 
+# ------------------------------------------------------------------ Every armor Tony wore (Marvel Database + Kaggle)
+FANDOM_WIKI = "https://marvel.fandom.com/wiki/"
+# Wearer groups for armors Tony designed but did not wear (matched on the page's owner fields).
+WEARERS = {"James Rhodes": "War Machine", "Virginia Potts": "Rescue", "Alpha Team": "S.H.I.E.L.D. Alpha Team",
+           "Reed Richards": "Mister Fantastic"}
+
+
+def infobox(wikitext, field):
+    """Raw value of one '| Field = value' infobox line (values can run over several lines)."""
+    m = re.search(r"^\|\s*" + field + r"\s*=(.*?)(?=^\|\s*\w+\s*=|^\}\}|\Z)", wikitext, re.M | re.S)
+    return m[1].strip() if m else ""
+
+
+def wiki_text(s):
+    """Wiki markup -> plain text: links keep their label, refs/templates/HTML dropped, whitespace squeezed."""
+    s = re.sub(r"\{\{r\|[^{}]*\}\}", "", s)                         # citation refs
+    s = re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]", r"\1", s)         # [[target|label]] -> label
+    s = re.sub(r"<br\s*/?>", "; ", s)
+    s = re.sub(r"<[^>]+>|\{\{[^{}]*\}\}|'''?", "", s)
+    s = re.sub(r"^\*\s*", "", s, flags=re.M)
+    return re.sub(r"\s+", " ", s).strip(" ;")
+
+
+def roman(s):
+    v = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100}
+    return sum(-v[a] if b and v[b] > v[a] else v[a] for a, b in zip(s, list(s[1:]) + [None]))
+
+
+def build_armors():
+    """Rules (design/03, locked with Shivraj on Nov 18):
+    - Realities: Earth-616 (main comics) and Earth-199999 (MCU) only.
+    - Tony's armors: 'Iron Man Armor ...' pages whose CurrentOwner/PreviousOwners list Anthony Stark. Pages with no
+      owner at all but Tony as lead designer (Models 8, 61, YT1) also count as Tony's.
+    - Armors Tony designed but someone else wore -> ring 'others', grouped by wearer (WEARERS).
+    - Appearances: MCU = size of the page's '/Appearances' category; comics = issues in comics_armor_models.csv.
+    - Famous: top 12 per universe by appearances (ties: higher est. value first) -> outer ring; the rest -> inner ring.
+    - Kaggle (suits.csv) wins for MCU codename, era, ability, build date, est. value, films; the Marvel Database
+      page gives first appearance, designer, creators, weight, height, capability tags and the source link."""
+    raw = json.loads((RAW / "marvel_fandom" / "iron_man_armor_pages.json").read_text(encoding="utf-8"))
+    suits = {int(r["mark"]): r for r in read_csv(OUT / "suits.csv")}
+    comic_counts = {r["armor_model"]: r for r in read_csv(OUT / "comics_armor_models.csv")}
+    film_years = {r["title"].lower(): r["release_date"][:4] for r in read_csv(OUT / "films.csv")}
+
+    rows = []
+    for p in raw["pages"]:
+        title, w = p["title"], p["wikitext"]
+        reality = infobox(w, "Reality")
+        mcu = "199999" in reality
+        if not (mcu or "Earth-616" in reality):
+            continue
+        owners = " ".join(infobox(w, k) for k in ("CurrentOwner", "PreviousOwners"))
+        designer = wiki_text(infobox(w, "LeadDesigner"))
+        tony_designed = "Anthony Stark" in infobox(w, "LeadDesigner")
+        # owner "Iron Man" written as plain text (Model 8) also means Tony
+        tony_wore = "Anthony Stark" in owners or owners.strip() == "Iron Man" or (not owners.strip() and tony_designed)
+        first = wiki_text(infobox(w, "First"))
+        row = {
+            "id": title, "universe": "MCU" if mcu else "Comics", "first_appearance": first,
+            "lead_designer": designer, "creators": wiki_text(infobox(w, "Creators")).replace(";", ","),
+            "weight": wiki_text(infobox(w, "Weight")), "height": wiki_text(infobox(w, "Dimensions")),
+            "capabilities": "|".join(sorted({t.strip() for t in re.findall(r"\{\{Power\|([^|}]+)", w)})),
+            "source_url": FANDOM_WIKI + title.replace(" ", "_"),
+        }
+        mk = re.fullmatch(r"Iron Man Armor MK ([IVXLC]+) \(Earth-199999\)", title)
+        if title.startswith("Iron Man Armor") and tony_wore:
+            if mcu:
+                if not mk:
+                    continue
+                n = roman(mk[1]); s = suits.get(n, {})
+                row.update(name=f"Mark {n}", mark=n, appearances=p.get("appearances", 0), unit="appearances",
+                           codename=s.get("codename", ""), era=s.get("era", ""), ability=s.get("ability", ""),
+                           built=s.get("date_label", ""), value_usd=s.get("value_usd", ""), films=s.get("films", ""),
+                           first_year=film_years.get(re.sub(r" \(film\)$", "", first).lower(), ""))
+            else:
+                c = comic_counts.get(title, {})
+                row.update(name=title.removeprefix("Iron Man Armor "), appearances=int(c.get("issues") or 0), unit="issues",
+                           first_year=c.get("first_year", ""), last_year=c.get("last_year", ""))
+            row["ring"] = "inner"
+            rows.append(row)
+        elif tony_designed:   # designed by Tony, worn by someone else (War Machine MK I lists both Rhodes and Tony)
+            group = next((g for k, g in WEARERS.items() if k in owners), None)
+            if group:
+                row.update(name=re.sub(r" \(Earth-\d+\)$", "", title), ring="others", group=group, unit="",
+                           appearances=p.get("appearances", 0))
+                rows.append(row)
+
+    for uni in ("MCU", "Comics"):
+        mine = [r for r in rows if r["universe"] == uni and r["ring"] == "inner"]
+        mine.sort(key=lambda r: (-int(r["appearances"] or 0), -float(r.get("value_usd") or 0), r["name"]))
+        for i, r in enumerate(mine):
+            r["rank"] = i + 1
+            if i < 12:
+                r["ring"] = "outer"
+    order = {"outer": 0, "inner": 1, "others": 2}
+    rows.sort(key=lambda r: (r["universe"], order[r["ring"]], r.get("rank") or 0, r["name"]))
+    write("armors_all.csv", rows, ["id", "name", "universe", "ring", "rank", "group", "appearances", "unit", "mark",
+                                   "codename", "era", "ability", "built", "value_usd", "films", "first_appearance",
+                                   "first_year", "last_year", "lead_designer", "creators", "weight", "height",
+                                   "capabilities", "source_url"])
+
+
 if __name__ == "__main__":
-    for step in (build_suits, build_films, build_media, build_comics, build_characters):
+    for step in (build_suits, build_films, build_media, build_comics, build_characters, build_armors):
         print(step.__name__)
         step()
     print("done")
