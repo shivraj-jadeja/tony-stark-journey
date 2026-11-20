@@ -16,6 +16,12 @@
 | `data/processed/armors_all.csv` (new) | 149 rows: 140 worn (MCU 50, comics 90; 24 outer + 116 inner) + 9 built for others |
 | `data/README.md`, `README.md` | Docs for the new data and view |
 
+## Look (v2, approved by Shivraj)
+
+- Red (MCU) and gold (comics) Iron Man theme.
+- Hologram hover: the piece lifts out along its angle, grows, brightens and gets a glowing edge; neighbours ease aside (0.3 s, critically damped). Tuning knobs `POP`, `LIFT`, `GROW`, `SMOOTH` are at the top of `armoryRings.js`.
+- Mark 85 (the snap suit) is always marked: gold outline, a gold notch on the inner edge, and a panel note.
+
 ## State
 
 - Works: rings, hover pop-out, keyboard, panel, sound toggle, timeline link. Checked in headless Chrome through a harness that mounts the real module (`design/mockups/view-armory.html`, git-ignored). No console errors.
@@ -39,4 +45,4 @@ python scripts/build_processed.py
 
 ## Open questions
 
-- Mark 85 (the snap suit) has 11 appearances, so it sits in the inner ring. Highlight it anyway?
+- None for this view.

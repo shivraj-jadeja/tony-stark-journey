@@ -1,22 +1,26 @@
 // Chapter 3 · "Armory Rings": every armor Tony wore, as segments of an arc reactor (design/03).
-//   right half = MCU (cyan) · left half = main comics, Earth-616 (gold)
+//   right half = MCU (Iron Man red) · left half = main comics, Earth-616 (gold)
 //   outer ring = each side's 12 most-seen armors, angle = share of appearances within its half
 //   inner ring = the rest, equal slices
 //   broken arcs on the diagonals = armors Tony built for someone else, one arc per wearer
-// Interaction: the hovered piece grows outward and widens while its neighbours ease aside (critically damped,
-// frame-rate independent), with an optional gear sound. Hit-testing is plain maths on the live geometry, so
+// Interaction (hologram feel): the hovered piece lifts off along its angle, grows, widens, brightens and gets a
+// glowing edge while its neighbours ease aside (critically damped, frame-rate independent), with an optional
+// gear sound. Mark 85 (the snap suit, Chapter 6) is always marked. Hit-testing is plain maths on the live geometry, so
 // there are no per-path listeners, and the animation frame loop runs only while pieces are moving.
 // MCU pieces share the selected suit with the timeline in Chapter 4 (core/selection.js).
 import { fmtUsd } from "../core/format.js";
 import { onSuitSelect, selectSuit } from "../core/selection.js";
 import { createGearSound } from "../core/gearSound.js";
 
-const CYAN = "#5fd8ff", GOLD = "#e3a83c";
+const RED = "#c8321f", GOLD = "#e3a83c";
+const LIGHT = { [RED]: "#ff7a5c", [GOLD]: "#ffe08a" };  // hologram tint the piece brightens toward
+const SNAP_MARK = 85;
 const R = { core: 52, inner: [64, 96], outer: [108, 176], others: [212, 226] };
-const POP = { outer: 22, inner: 16, others: 12 };       // outward growth of the focused piece (px)
-const GROW = { outer: 0.75, inner: 3.2, others: 0.7 };  // extra width of the focused piece (x its base weight)
-const FALLOFF = [1, 0.4, 0.16, 0.05];                   // focus strength for the piece and its neighbours ±1..3
-const SMOOTH = 0.24;                                    // seconds to settle
+const POP = { outer: 40, inner: 26, others: 20 };       // outward growth of the focused piece (px)
+const LIFT = { outer: 16, inner: 14, others: 10 };      // the whole piece slides out along its angle (px)
+const GROW = { outer: 1.15, inner: 4.6, others: 1.0 };  // extra width of the focused piece (x its base weight)
+const FALLOFF = [1, 0.38, 0.14, 0.04];                  // focus strength for the piece and its neighbours ±1..3
+const SMOOTH = 0.3;                                     // seconds to settle (longer travel needs a slightly longer ease)
 const GAP = 0.05, TAU = Math.PI * 2;
 const HALF = { MCU: [GAP, Math.PI - GAP], Comics: [Math.PI + GAP, TAU - GAP] };
 const DIAG = { "War Machine": 45, "Rescue": 135, "S.H.I.E.L.D. Alpha Team": 225, "Mister Fantastic": 315 };
@@ -34,14 +38,14 @@ export function mountArmoryRings({ svg: svgEl, panel: panelEl, soundButton, armo
   const add = (ring, span, items, weight, color, universe, pad, label = null) =>
     groups.push({ ring, span, pad, color, universe, label,
       items: items.map(d => ({ d, w: weight(d), t: 0, v: 0, goal: 0, a0: 0, a1: 0 })) });
-  for (const [u, color] of [["MCU", CYAN], ["Comics", GOLD]]) {
+  for (const [u, color] of [["MCU", RED], ["Comics", GOLD]]) {
     const mine = armors.filter(a => a.universe === u);
     add("outer", HALF[u], mine.filter(a => a.ring === "outer"), a => Math.max(a.appearances, 1), color, u, 0.012);
     add("inner", HALF[u], mine.filter(a => a.ring === "inner"), () => 1, color, u, 0.003);
   }
   for (const [wearer, items] of d3.groups(armors.filter(a => a.ring === "others"), a => a.group)) {
     const c = (DIAG[wearer] ?? 0) * Math.PI / 180, span = (6 + 5 * items.length) * Math.PI / 180;
-    add("others", [c - span / 2, c + span / 2], items, () => 1, items[0].universe === "MCU" ? CYAN : GOLD,
+    add("others", [c - span / 2, c + span / 2], items, () => 1, items[0].universe === "MCU" ? RED : GOLD,
       items[0].universe, 0.02, wearer);
   }
   const pieces = groups.flatMap(g => g.items.map((p, i) => Object.assign(p, { g, i })));
@@ -59,28 +63,43 @@ export function mountArmoryRings({ svg: svgEl, panel: panelEl, soundButton, armo
     const [r0, r1] = R[p.g.ring];
     return arc({ innerRadius: r0 - 2 * p.t, outerRadius: r1 + POP[p.g.ring] * p.t, startAngle: p.a0, endAngle: p.a1 });
   };
-  const opacity = p => p.g.ring === "inner" ? 0.42 + 0.5 * p.t : p.g.ring === "others" ? 0.5 + 0.45 * p.t : 0.78 + 0.22 * p.t;
+  const opacity = p => p.g.ring === "inner" ? 0.45 + 0.55 * p.t : p.g.ring === "others" ? 0.55 + 0.45 * p.t : 0.82 + 0.18 * p.t;
+  const lift = p => { const a = (p.a0 + p.a1) / 2, d = LIFT[p.g.ring] * p.t;
+    return `translate(${(Math.sin(a) * d).toFixed(2)},${(-Math.cos(a) * d).toFixed(2)})`; };
+  const tint = p => p.t < 0.005 ? p.g.color : d3.interpolateRgb(p.g.color, LIGHT[p.g.color])(0.55 * p.t);
+  const edge = p => p.t < 0.005 ? null : d3.interpolateRgb("#07090d", "#fff4d6")(Math.min(1, p.t * 1.2));
   groups.forEach(layout);
 
   // ---- marks ----
   const paths = svg.append("g").attr("class", "pieces").selectAll("path").data(pieces).join("path")
-    .attr("class", p => `piece ${p.g.ring}`).attr("fill", p => p.g.color).attr("d", pathOf).attr("fill-opacity", opacity);
+    .attr("class", p => `piece ${p.g.ring}${p.d.mark === SNAP_MARK && p.d.universe === "MCU" ? " snap" : ""}`)
+    .attr("fill", p => p.g.color).attr("d", pathOf).attr("fill-opacity", opacity);
+  const draw = () => paths.attr("d", pathOf).attr("transform", lift).attr("fill-opacity", opacity).attr("fill", tint)
+    .style("stroke", edge).style("stroke-width", p => p.t < 0.005 ? null : 1 + 1.6 * p.t);
+  // Mark 85, the snap suit: a gold notch on the inner edge points at it wherever it sits
+  const snapPiece = pieces.find(p => p.d.universe === "MCU" && p.d.mark === SNAP_MARK);
+  const snapMark = snapPiece && svg.append("path").attr("class", "snap-notch").attr("d", "M0,-3.5L4.5,0L0,3.5Z");
+  const placeSnap = () => snapMark?.attr("transform", () => {
+    const a = (snapPiece.a0 + snapPiece.a1) / 2, r = R.inner[0] - 7 - 2 * snapPiece.t;
+    return `rotate(${a * 180 / Math.PI - 90}) translate(${r},0)`; });
   const labels = svg.append("g").selectAll("text").data(ringPieces.outer).join("text").attr("class", "lbl").attr("dy", "0.32em")
     .text(p => p.d.name.replace("Mark ", "MK ").replace("Model ", "M"));
   const placeLabels = () => labels
     .attr("transform", p => {
       const a = (p.a0 + p.a1) / 2;
-      return `rotate(${a * 180 / Math.PI - 90}) translate(${R.outer[1] + 6 + POP.outer * p.t},0)${a > Math.PI ? " rotate(180)" : ""}`;
+      return `rotate(${a * 180 / Math.PI - 90}) translate(${R.outer[1] + 6 + (POP.outer + LIFT.outer) * p.t},0)${a > Math.PI ? " rotate(180)" : ""}`;
     })
     .attr("text-anchor", p => (p.a0 + p.a1) / 2 > Math.PI ? "end" : "start")
     .classed("on", p => p.t > 0.5);
   placeLabels();
+  draw();
+  placeSnap();
   for (const g of groups.filter(g => g.label)) {
     const c = (g.span[0] + g.span[1]) / 2, r = R.others[1] + 22;
     svg.append("text").attr("class", "grp").attr("fill", g.color).attr("x", Math.sin(c) * r).attr("y", -Math.cos(c) * r)
       .attr("dy", "0.32em").attr("text-anchor", Math.sin(c) > 0 ? "start" : "end").text(`${g.label} · ${g.items.length}`);
   }
-  for (const [u, color] of [["MCU", CYAN], ["Comics", GOLD]]) {
+  for (const [u, color] of [["MCU", RED], ["Comics", GOLD]]) {
     const m = (HALF[u][0] + HALF[u][1]) / 2, n = armors.filter(a => a.universe === u && a.ring !== "others").length;
     svg.append("text").attr("class", "half").attr("fill", color).attr("text-anchor", "middle")
       .attr("x", Math.sin(m) * 318).attr("y", -Math.cos(m) * 318 + 4).text(`${u === "MCU" ? "MCU" : "COMICS"} · ${n}`);
@@ -107,8 +126,9 @@ export function mountArmoryRings({ svg: svgEl, panel: panelEl, soundButton, armo
       if (Math.abs(p.goal - p.t) > 0.001 || Math.abs(p.v) > 0.001) moving = true; else { p.t = p.goal; p.v = 0; }
     }
     groups.forEach(layout);
-    paths.attr("d", pathOf).attr("fill-opacity", opacity);
+    draw();
     placeLabels();
+    placeSnap();
     if (moving) raf = requestAnimationFrame(tick); else last = 0;
   }
   const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
@@ -131,11 +151,22 @@ export function mountArmoryRings({ svg: svgEl, panel: panelEl, soundButton, armo
       if (!fromSelection && p.d.mark != null && suitByMark.has(p.d.mark)) selectSuit(suitByMark.get(p.d.mark));
     }
     paths.classed("on", q => q === p);
+    if (p) paths.filter(q => q === p).raise();          // the lifted piece floats above its ring
     kick();
   }
 
   // hit-test on the live geometry: radius picks the ring, angle picks the piece
+  // inside the focused piece's LIVE shape (after lift and growth)? Checked first so a popped piece that reaches
+  // into the next ring keeps the pointer instead of flickering back and forth.
+  function inside(p, px, py) {
+    const m = (p.a0 + p.a1) / 2, d = LIFT[p.g.ring] * p.t;
+    const x = px - Math.sin(m) * d, y = py + Math.cos(m) * d, r = Math.hypot(x, y);
+    let a = Math.atan2(x, -y); if (a < 0) a += TAU;
+    const [r0, r1] = R[p.g.ring];
+    return a >= p.a0 - p.g.pad && a <= p.a1 + p.g.pad && r >= r0 - 2 * p.t - 4 && r <= r1 + POP[p.g.ring] * p.t + 4;
+  }
   function pick(px, py) {
+    if (current && inside(current, px, py)) return current;
     const r = Math.hypot(px, py);
     let a = Math.atan2(px, -py); if (a < 0) a += TAU;
     const ring = r >= R.others[0] - 6 && r <= R.others[1] + 16 ? "others"
@@ -185,7 +216,7 @@ export function mountArmoryRings({ svg: svgEl, panel: panelEl, soundButton, armo
 
 // ---- detail panel: only fields the sources give; blanks are left out, never filled in ----
 function renderPanel(el, p) {
-  const a = p.d, mcu = a.universe === "MCU", color = mcu ? CYAN : GOLD;
+  const a = p.d, mcu = a.universe === "MCU", color = mcu ? RED : GOLD, ink = mcu ? "#fff" : "#07090d";
   const where = a.ring === "others" ? `Built by Tony for ${a.group}`
     : a.ring === "outer" ? `#${a.rank} most seen · ${mcu ? "MCU" : "main comics"}` : mcu ? "MCU" : "Main comics (Earth-616)";
   const rows = [
@@ -200,7 +231,8 @@ function renderPanel(el, p) {
   el.innerHTML = `
     <div class="model">${a.name}</div>
     <div class="code">${a.codename ? `"${a.codename}"` : a.era || "&nbsp;"}</div>
-    <span class="chip" style="background:${color}">${where}</span>
+    <span class="chip" style="background:${color};color:${ink}">${where}</span>
+    ${a.universe === "MCU" && a.mark === SNAP_MARK ? `<p class="snap-note">The suit from the snap, Chapter 6.</p>` : ""}
     ${a.ability ? `<p class="ability">${a.ability}</p>` : ""}
     ${rows.length ? `<dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>` : ""}
     ${a.first ? `<p class="src">First appearance: ${a.first}${a.designer ? ` · designed by ${a.designer}` : ""}</p>` : ""}

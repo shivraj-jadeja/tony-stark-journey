@@ -6,15 +6,18 @@
 #armoryChart:focus-visible { outline: 1px dashed var(--arc); outline-offset: 6px; }
 #armoryChart .piece { stroke: var(--bg); stroke-width: 1; }
 #armoryChart .piece.on { stroke: #fff; stroke-width: 1.6; }
-#armoryChart .lbl { font: 9.5px var(--f-mono); fill: var(--fg-soft); pointer-events: none; }
-#armoryChart .lbl.on { fill: var(--fg); font-weight: 600; }
+#armoryChart .lbl { font: 9.5px var(--f-mono); fill: #d8c9b0; pointer-events: none; }
+#armoryChart .lbl.on { fill: #fff4d6; font-weight: 600; }
 #armoryChart .grp { font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; pointer-events: none; }
 #armoryChart .half { font: 600 11px var(--f-mono); letter-spacing: .2em; pointer-events: none; }
-#armoryChart .core circle { fill: #0e2230; stroke: var(--arc); stroke-width: 1.5; }
+#armoryChart .core circle { fill: #1a0f0c; stroke: var(--gold); stroke-width: 1.5; }
+#armoryChart .piece.snap { stroke: #ffe08a; stroke-width: 1.4; }
+#armoryChart .snap-notch { fill: #ffe08a; pointer-events: none; }
 #armoryChart .core-n { font: 700 40px var(--f-display); fill: var(--fg); }
 #armoryChart .core-l { font: 9.5px var(--f-mono); letter-spacing: .2em; fill: var(--muted); }
 .snd { display: block; margin: 16px auto 0; font: 600 11.5px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: transparent; border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; }
-.snd[aria-pressed="true"] { color: var(--arc); border-color: var(--arc); }
+.snd[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+.suit-panel .snap-note { font: 12px var(--f-mono); color: #ffe08a; margin-top: 10px; letter-spacing: .04em; }
 .snd:hover, .snd:focus-visible { color: var(--fg); border-color: var(--fg); outline: none; }
 .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; justify-content: center; }
 .legend button, .keys button {
