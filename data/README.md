@@ -16,7 +16,7 @@ the limit, so the Wikidata step can take a while.
 | Folder | Source | What it gives the story | License |
 |---|---|---|---|
 | `raw/kaggle/` | [MCU Iron Man Suits](https://www.kaggle.com/datasets/butleriii/mcu-iron-man-suits-dataset) (49 suits) | MCU armor: era, codename, ability, build date, estimated value, films | Kaggle dataset page; committed by hand (Kaggle needs a login) |
-| `raw/marvel_fandom/` | [Marvel Database](https://marvel.fandom.com/wiki/Category:Anthony_Stark_(Earth-616)/Appearances), every issue in the Tony Stark (Earth-616) and Victor von Doom (Earth-616) appearance categories, with each issue's categories; plus every page in [Category:Iron Man Armor](https://marvel.fandom.com/wiki/Category:Iron_Man_Armor) (wikitext + appearance count) | Comic issues per year, writers, armor models, co-appearing characters, Doom overlap, the Armory Rings | CC BY-SA 3.0 |
+| `raw/marvel_fandom/` | [Marvel Database](https://marvel.fandom.com/wiki/Category:Anthony_Stark_(Earth-616)/Appearances), every issue in the Tony Stark (Earth-616) and Victor von Doom (Earth-616) appearance categories, with each issue's categories; plus every page in [Category:Iron Man Armor](https://marvel.fandom.com/wiki/Category:Iron_Man_Armor) (wikitext + appearance count); plus every [Tony Stark variant page](https://marvel.fandom.com/wiki/Special:PrefixIndex?prefix=Anthony+Stark+() with its appearance lists | Comic issues per year, writers, armor models, co-appearing characters, Doom overlap, the Armory Rings, the Temporal Loom | CC BY-SA 3.0 |
 | `raw/fivethirtyeight/` | [FiveThirtyEight comic-characters](https://github.com/fivethirtyeight/data/tree/master/comic-characters) | All ~16,000 Marvel characters with appearance counts and first year; Tony and Doom in context | CC BY 4.0 |
 | `raw/wikidata/` | [Wikidata](https://query.wikidata.org/) SPARQL exports (queries are in `fetch_raw.py`) | MCU films (release, box office, IMDb id), Robert Downey Jr.'s filmography and roles, Iron Man across media | CC0 |
 | `raw/imdb/` | [IMDb non-commercial datasets](https://developer.imdb.com/non-commercial-datasets/), `title.ratings` | Film ratings and vote counts | Non-commercial use; git-ignored (9 MB), re-fetch with `fetch_raw.py imdb` |
@@ -102,6 +102,49 @@ with each page's appearance count) joined to `suits.csv`, `comics_armor_models.c
 Rules: Earth-616 and Earth-199999 only. "Tony wore it" = Anthony Stark in CurrentOwner/PreviousOwners, or the owner is
 written as "Iron Man", or no owner is listed and Tony is lead designer (Models 8, 61, YT1). Ties in the top-12 rank go to
 the higher estimated value. Nothing is filled in: blank fields stay blank.
+
+### `variants.csv`: every Tony Stark variant in the Marvel Database (786)
+Built by `build_variants()` from `raw/marvel_fandom/tony_variants.json` (fetch with `python scripts/fetch_raw.py variants`:
+every page titled "Anthony Stark (…)", its wikitext, the members of its "/Appearances" and "/Minor Appearances"
+categories, and each appearance page's date categories). Used by the Temporal Loom and the thread river behind the page.
+
+| Column | Meaning | Abstract type |
+|---|---|---|
+| `id` | Marvel Database page title | categorical identifier |
+| `name` | infobox name ("Anthony Edward "Tony" Stark") | text |
+| `designation` | the part of the title in brackets ("Earth-199999", "Clone, Earth-616") | categorical |
+| `reality` | infobox Reality, as written | categorical (~700 values) |
+| `lane` | Earth-616 comics · MCU · Other comics · TV series · Films · Other media · Undated | nominal, derived |
+| `alias` | infobox CurrentAlias ("Iron Man"); blank if none | nominal |
+| `appearances`, `minor_appearances` | sizes of the two appearance categories | quantitative (count) |
+| `first_year`, `last_year` | earliest and latest dated appearance page | temporal |
+| `first_appearance` | infobox First (issue, episode or film title) | text |
+| `death`, `death_year` | infobox Death (title), and that page's year when it is dated | text, temporal |
+| `identity`, `creators` | infobox Identity; real-world creators | nominal, text |
+| `chapters` | level-3 history headings of the page, in page order, `|`-separated. Ordered, **not dated** | ordered text list |
+| `teams` | `{{m|Team}}` links in the infobox Affiliation field, current and former, `|`-separated | multivalued nominal |
+| `occupation` | lines of the infobox Occupation field, `|`-separated | multivalued nominal |
+| `killed_by`, `cause_of_death` | infobox KilledBy names (`|`-separated) and CauseOfDeath text | nominal, text |
+| `armors` | "Iron Man Armor ..." pages linked in the infobox Equipment field, model names only, `|`-separated | multivalued nominal |
+| `seen_comics`, `seen_tv`, `seen_film`, `seen_other` | appearance pages per medium | quantitative (count) |
+| `source_url` | Marvel Database page | URL |
+
+Rules:
+- A variant is a character page titled "Anthony Stark (…)". A redirect of that form counts when it lands on an
+  "Antonio Stark (…)" or "Tony Stark (…)" page (Earth-1610's Tony is filed as Antonio). Redirects that land on someone
+  else (Arno Stark, Iron Moth, a Skrull impostor) are dropped, and so are disambiguation pages.
+- Year of an appearance page: cover year for comics, release year otherwise. Undated pages count in the totals only.
+- `lane`: Earth-616 and Earth-199999 (the MCU) are their own lanes. Every other variant goes by the medium most of its
+  appearance pages belong to (ties: comics, then TV, film, other), using the wiki's own page-type categories
+  (Comics, Episodes, Feature Films, Web Films, Short Films). "Other media" is everything else (novels, stage shows,
+  games). A variant with no dated page is "Undated" (73 of them).
+- Nothing is filled in: 587 variants have no death listed, 748 have no story chapters, and those stay blank.
+
+### `variant_years.csv`: one row per variant and year with an appearance (1,157)
+`id, year, appearances, minor_appearances`. The loom adds the two counts for a thread's brightness in that year.
+
+### `variants_meta.csv`
+`key, value`: the fetch date and the source URL of the variant data, so the page can say when the wiki was read.
 
 ### `marvel_characters.csv`: FiveThirtyEight table, trimmed
 `name, alignment, sex, alive, appearances, first_year, is_tony, is_doom`. Its counts stop in 2014; the Marvel

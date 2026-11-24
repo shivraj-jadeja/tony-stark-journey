@@ -75,3 +75,39 @@ export const loadArmors = () => once("armors", () =>
 
 export const loadComicsByYear = () => once("comicsByYear", () =>
   d3.csv("data/processed/comics_tony_by_year.csv", d3.autoType));
+
+// Every Tony Stark variant in the Marvel Database, with its appearances per year. Rules: build_variants() in build_processed.py.
+export const loadVariants = () => once("variants", () => Promise.all([
+  d3.csv("data/processed/variants.csv", r => ({
+    id: r.id,                             // Marvel Database page title
+    name: r.name,
+    designation: r.designation,           // "Earth-199999", "Clone, Earth-616"
+    reality: r.reality || null,
+    lane: r.lane,
+    alias: r.alias || null,
+    appearances: +r.appearances || 0,
+    minor: +r.minor_appearances || 0,
+    firstYear: r.first_year ? +r.first_year : null,
+    lastYear: r.last_year ? +r.last_year : null,
+    first: r.first_appearance || null,
+    death: r.death || null,
+    deathYear: r.death_year ? +r.death_year : null,
+    identity: r.identity || null,
+    creators: r.creators || null,
+    chapters: r.chapters ? r.chapters.split("|") : [],
+    teams: r.teams ? r.teams.split("|") : [],
+    occupation: r.occupation ? r.occupation.split("|") : [],
+    killedBy: r.killed_by ? r.killed_by.split("|") : [],
+    cause: r.cause_of_death || null,
+    armors: r.armors ? r.armors.split("|") : [],
+    seen: { comics: +r.seen_comics || 0, tv: +r.seen_tv || 0, film: +r.seen_film || 0, other: +r.seen_other || 0 },
+    url: r.source_url
+  })),
+  d3.csv("data/processed/variant_years.csv", r => ({ id: r.id, year: +r.year, n: +r.appearances + +r.minor_appearances })),
+  d3.csv("data/processed/variants_meta.csv")
+]).then(([variants, years, meta]) => {
+  const byId = d3.group(years, y => y.id);
+  variants.forEach(v => { v.years = byId.get(v.id) || []; });
+  variants.fetched = meta.find(m => m.key === "fetched")?.value || null;   // the day the wiki was read
+  return variants;
+}));

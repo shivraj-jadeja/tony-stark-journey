@@ -413,8 +413,126 @@ def build_armors():
                                    "capabilities", "source_url"])
 
 
+# ------------------------------------------------------------------ Tony Stark variants (Marvel Database)
+VARIANT_TITLE = re.compile(r"^(?:Anthony|Antonio|Tony) Stark \((.+)\)$")
+DATED = re.compile(r"^(\d{4})(?:, \w+)?( Cover Date)?$")
+RELEASED = re.compile(r"^Comics Released in (\d{4})$")
+# Medium of an appearance page, from the wiki's own page-type categories.
+MEDIA = {"Comics": "comics", "Episodes": "tv", "Feature Films": "film", "Web Films": "film", "Short Films": "film",
+         "LEGO short films": "film"}
+LANES = {"comics": "Other comics", "tv": "TV series", "film": "Films", "other": "Other media"}
+UNDATED = "Undated"
+
+
+def variant_field(wikitext, field):
+    """Infobox value as plain text, with footnotes (<ref>...</ref>) removed before the markup is stripped."""
+    return wiki_text(re.sub(r"<ref[^>]*?/>|<ref[^>]*>.*?</ref>", "", infobox(wikitext, field), flags=re.S))
+
+
+def page_year(cats):
+    """Year of one appearance page: its cover date (comics), else its release category, else its date category."""
+    cover = [int(m[1]) for c in cats if (m := DATED.match(c)) and m[2]]
+    released = [int(m[1]) for c in cats if (m := RELEASED.match(c))]
+    plain = [int(m[1]) for c in cats if (m := DATED.match(c)) and not m[2]]
+    return (cover or released or plain or [None])[0]
+
+
+def page_medium(cats):
+    if any(DATED.match(c) and c.endswith("Cover Date") or RELEASED.match(c) for c in cats):
+        return "comics"
+    return next((MEDIA[c] for c in cats if c in MEDIA), "other")
+
+
+def build_variants():
+    """Rules (design/04):
+    - A variant is a Marvel Database character page titled "Anthony Stark (...)". A redirect of that form counts when
+      it lands on an "Antonio Stark (...)" or "Tony Stark (...)" page (Earth-1610's Tony is filed as Antonio).
+      Redirects that land on someone else (Arno Stark, Iron Moth, a Skrull impostor) are dropped, and so are
+      disambiguation pages.
+    - Years come from the pages in the variant's "/Appearances" and "/Minor Appearances" categories: cover year for
+      comics, release year otherwise. Pages without a date are counted in the totals but have no year.
+    - first_year / last_year: earliest and latest dated page. A variant with no dated page has no years.
+    - death_year: the year of the page named in the infobox "Death" field, when that page is dated.
+    - lane: Earth-616 and Earth-199999 (the MCU) are their own lanes; every other variant goes by the medium most of
+      its appearance pages belong to (ties: comics, then tv, film, other). "Other media" is games, novels, stage shows
+      and anything else the wiki does not file as a comic, episode or film. A variant with no dated page goes to
+      "Undated".
+    - chapters: the page's level-3 history headings in page order. They are ordered, not dated.
+    - teams: the {{m|Team}} links in the infobox "Affiliation" field (current and former), reality suffix removed.
+    - killed_by: the infobox "KilledBy" names, reality suffix removed. cause_of_death: that field as plain text.
+    - armors: the "Iron Man Armor ..." pages linked in the infobox "Equipment" field (the bare "Iron Man Armor"
+      link names no model, so it is not listed).
+    - occupation: the lines of the infobox "Occupation" field, current and former together.
+    - seen_comics / seen_tv / seen_film / seen_other: how many of the variant's appearance pages are of each medium.
+    Nothing is filled in: blank fields stay blank."""
+    path = RAW / "marvel_fandom" / "tony_variants.json"
+    if not path.exists():
+        print("  skipped (run: python scripts/fetch_raw.py variants)")
+        return
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    pages = dict(raw["appearance_pages"])
+    main = RAW / "marvel_fandom" / "tony_stark_616_issues.json"
+    if main.exists():   # issues already fetched for Chapter 1 carry their cover dates there
+        pages.update({i["title"]: i["categories"] for i in json.loads(main.read_text(encoding="utf-8"))["issues"]})
+
+    rows, year_rows = [], []
+    for v in raw["variants"]:
+        title, w = v["title"], v["wikitext"]
+        m = VARIANT_TITLE.match(title)
+        if not m or "Marvel Database:Character Template" not in w[:200]:
+            continue
+        reality = infobox(w, "Reality").strip()
+        years = defaultdict(lambda: [0, 0])
+        media = Counter()
+        for kind, titles in enumerate((v["appearances"], v["minor_appearances"])):
+            for t in titles:
+                cats = pages.get(t, [])
+                media[page_medium(cats)] += 1
+                if y := page_year(cats):
+                    years[y][kind] += 1
+        if reality == "Earth-616":
+            lane = "Earth-616 comics"
+        elif reality == "Earth-199999":
+            lane = "MCU"
+        elif not years:
+            lane = UNDATED
+        else:
+            order = ["comics", "tv", "film", "other"]
+            lane = LANES[max(order, key=lambda k: (media[k], -order.index(k)))]
+        first, death = variant_field(w, "First"), variant_field(w, "Death")
+        chapters = [wiki_text(h) for h in re.findall(r"^===\s*([^=].*?)\s*===\s*$", infobox(w, "History"), re.M)]
+        no_reality = lambda s: re.sub(r"\s*\((?:Earth-[^)]*|[^)]*\) \(Earth-[^)]*)\)$", "", s.strip())
+        teams = list(dict.fromkeys(no_reality(t) for t in re.findall(r"\{\{[mM]\|([^|}]+)", infobox(w, "Affiliation"))))
+        killers = [no_reality(k) for k in wiki_text(infobox(w, "KilledBy")).split(";") if k.strip()]
+        armors = sorted({no_reality(a).removeprefix("Iron Man Armor").strip() for a in
+                         re.findall(r"\[\[(Iron Man Armor[^|\]#]*)", infobox(w, "Equipment"))} - {""})
+        jobs = [wiki_text(j).strip(" .:") for j in re.split(r"[\n*;]", re.sub(r"<ref[^>]*?/>|<ref[^>]*>.*?</ref>", "", infobox(w, "Occupation"), flags=re.S))]
+        jobs = list(dict.fromkeys(j[:1].upper() + j[1:] for j in jobs if j and j.lower() != "formerly"))
+        rows.append({
+            "id": title, "name": variant_field(w, "Name") or "Anthony Stark", "designation": m[1].replace(") (", ", "),
+            "reality": reality, "lane": lane, "alias": variant_field(w, "CurrentAlias"),
+            "appearances": len(v["appearances"]), "minor_appearances": len(v["minor_appearances"]),
+            "first_year": min(years) if years else "", "last_year": max(years) if years else "",
+            "first_appearance": first, "death": death, "death_year": page_year(pages.get(death, [])) or "",
+            "identity": variant_field(w, "Identity"), "creators": variant_field(w, "Creators").replace(";", ","),
+            "chapters": "|".join(c for c in chapters if c),
+            "teams": "|".join(teams), "occupation": "|".join(jobs),
+            "killed_by": "|".join(killers),
+            "cause_of_death": re.sub(r"^#\s*", "", variant_field(w, "CauseOfDeath")).replace(" # ", "; "),
+            "armors": "|".join(armors),
+            "seen_comics": media["comics"], "seen_tv": media["tv"], "seen_film": media["film"], "seen_other": media["other"],
+            "source_url": FANDOM_WIKI + title.replace(" ", "_"),
+        })
+        year_rows += [{"id": title, "year": y, "appearances": a, "minor_appearances": b} for y, (a, b) in sorted(years.items())]
+    rows.sort(key=lambda r: (r["first_year"] or 9999, -r["appearances"], r["id"]))
+    write("variants.csv", rows, list(rows[0]))
+    write("variant_years.csv", year_rows, ["id", "year", "appearances", "minor_appearances"])
+    write("variants_meta.csv", [{"key": "fetched", "value": raw["fetched"]}, {"key": "source", "value": raw["source"]}],
+          ["key", "value"])
+
+
 if __name__ == "__main__":
-    for step in (build_suits, build_films, build_media, build_comics, build_characters, build_armors):
+    for step in (build_suits, build_films, build_media, build_comics, build_characters, build_armors, build_variants):
         print(step.__name__)
         step()
     print("done")

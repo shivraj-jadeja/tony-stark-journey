@@ -35,6 +35,10 @@
     <circle r="20" fill="#eaf9ff" opacity=".85"/>
   </svg>
 
+  <!-- The thread river: every Tony Stark variant as a thread flowing behind the story, into and out of the Temporal Loom
+       (js/core/threadRiver.js). It starts at data-river-start and ends at data-river-end (x y, as shares of that figure). -->
+  <canvas id="thread-river" aria-hidden="true"></canvas>
+
   <div class="hud" aria-live="polite">
     <div class="sys">J.A.R.V.I.S. · story telemetry</div>
     <div class="yr" id="hudYear">1963</div>
@@ -46,7 +50,7 @@
   <main>
     <!-- 0 · Hero -->
     <header class="hero" data-year="2008" data-label="Stark Industries">
-      <figure class="hero-img">
+      <figure class="hero-img" data-river-start="1 1">
         <img src="assets/img/hero-jericho-1920.webp" srcset="assets/img/hero-jericho-960.webp 960w, assets/img/hero-jericho-1920.webp 1920w" sizes="100vw" width="1920" height="1008" fetchpriority="high"
              alt="Tony Stark in a suit, arms spread wide, as Jericho missiles explode across the mountains behind him">
         <figcaption>Iron Man (2008) · The Jericho demonstration</figcaption>
@@ -138,11 +142,33 @@
       <img class="ghost r" src="assets/img/ghosts/pose2-doom.webp" width="900" height="376" alt="" aria-hidden="true" loading="lazy" decoding="async">
       <div class="wrap">
         <div class="eyebrow">Chapter 5 · The multiverse</div>
-        <h2>Eight hundred Tonys.</h2>
-        <div class="slot">
-          <b>View slot · Temporal Loom</b>
-          <span>every Tony Stark variant in the Marvel Database as a thread through era rings · design/04 · next after the Armory Rings</span>
+        <h2><span data-stat="variants">–</span> Tonys, one loom.</h2>
+        <div class="prose">
+          <p>The threads behind this page are not decoration. Each one is a Tony Stark: every version of him the Marvel Database lists, from the 1963 original to cartoons, films and what-if worlds. Here they run through the loom from left to right, by year.</p>
+          <p>A thread is bright in the years that Tony appears. Each gate closes an era, and its size is the number of Tonys seen in it. <strong>Click a thread</strong> to light it and read that life. Hover to see which Tony it is.</p>
         </div>
+        <div class="loom-tools">
+          <label class="loom-find">Find a reality
+            <input id="loomSearch" type="search" list="loomOptions" placeholder="Earth-1610" autocomplete="off" spellcheck="false">
+          </label>
+          <datalist id="loomOptions"></datalist>
+          <button type="button" class="loom-quick" data-thread="Anthony Stark (Earth-199999)">Follow the MCU thread</button>
+          <button type="button" class="loom-quick" data-thread="Anthony Stark (Earth-616)">The 1963 original</button>
+        </div>
+        <div class="loom-lens" id="loomLens" role="group" aria-label="Light up a group of Tonys"></div>
+        <p class="note loom-lens-note" id="loomLensNote" aria-live="polite"></p>
+      </div>
+      <div class="loom-stage" id="loomStage" tabindex="0" role="img"
+           aria-label="Temporal Loom: every Tony Stark variant as a thread running left to right by year, through gates sized by how many variants appear in each era. Use the arrow keys to step between threads, Enter to hold one, Escape to clear.">
+        <canvas class="loom-base"></canvas>
+        <canvas class="loom-hi"></canvas>
+        <svg aria-hidden="true"></svg>
+        <div class="tip" id="loomTip"></div>
+      </div>
+      <div class="wrap">
+        <div class="legend loom-legend" id="loomLegend"></div>
+        <aside class="panel loom-panel" id="loomPanel" aria-live="polite"></aside>
+        <p class="note mt">Source: Marvel Database, every character page titled "Anthony Stark (…)", fetched <span data-stat="variantsFetched">–</span>. Years are comic cover dates, or release years for episodes and films. After the last gate the threads turn Doom green: that part is the story's ending, not data.</p>
       </div>
     </section>
 
@@ -176,7 +202,7 @@
     <!-- 7 · Doom -->
     <!-- Doom stays alone here: no Iron Man ghost. Full-bleed, the same size as the Jericho hero. -->
     <section class="doom doom-hero" data-year="2026" data-label="Doomsday">
-      <figure class="hero-img">
+      <figure class="hero-img" data-river-end="0.52 0.34">
         <img src="assets/img/doomsday-armsspread-1880.webp" srcset="assets/img/doomsday-armsspread-940.webp 940w, assets/img/doomsday-armsspread-1880.webp 1880w" sizes="100vw" width="1880" height="798" loading="lazy" decoding="async"
              alt="Doctor Doom, hooded and masked, spreading his arms wide in front of towering Doombots and a hazy sun">
         <figcaption>Avengers: Doomsday · trailer</figcaption>
@@ -200,9 +226,9 @@
           <h3>Views</h3>
           <ul>
             <li>Comics issues per year<span class="tag done">BUILT</span></li>
-            <li>Arc reactor radial chart<span class="tag next">REBUILD</span></li>
+            <li>Armory Rings (every armor)<span class="tag done">BUILT</span></li>
             <li>Zoomed suit timeline + box office<span class="tag done">BUILT</span></li>
-            <li>Temporal Loom (variants)<span class="tag next">PLANNED</span></li>
+            <li>Temporal Loom (variants)<span class="tag done">BUILT</span></li>
             <li>Mark 85 exploded scan<span class="tag next">REBUILD</span></li>
           </ul>
         </div>
@@ -211,6 +237,7 @@
           <ul>
             <li><a href="https://www.kaggle.com/datasets/butleriii/mcu-iron-man-suits-dataset" target="_blank" rel="noopener">MCU Iron Man Suits</a> (Kaggle)</li>
             <li><a href="https://marvel.fandom.com/wiki/Category:Anthony_Stark_(Earth-616)/Appearances" target="_blank" rel="noopener">Marvel Database</a> comic appearances (CC BY-SA)</li>
+            <li><a href="https://marvel.fandom.com/wiki/Special:PrefixIndex?prefix=Anthony+Stark+(" target="_blank" rel="noopener">Marvel Database</a> Tony Stark variant pages (CC BY-SA)</li>
             <li><a href="https://github.com/fivethirtyeight/data/tree/master/comic-characters" target="_blank" rel="noopener">FiveThirtyEight comic characters</a> (CC BY 4.0)</li>
             <li><a href="https://www.wikidata.org/wiki/Q165524" target="_blank" rel="noopener">Wikidata</a> films, box office, media (CC0)</li>
             <li><a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener">IMDb ratings</a> (non-commercial)</li>

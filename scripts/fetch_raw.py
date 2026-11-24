@@ -4,7 +4,7 @@ Standard library only, so it runs on any Python 3.9+ without installs:
 
     python scripts/fetch_raw.py            # fetch everything missing
     python scripts/fetch_raw.py --force    # re-download everything
-    python scripts/fetch_raw.py fandom     # fetch one source (fandom, armor, wikidata, fivethirtyeight, imdb)
+    python scripts/fetch_raw.py fandom     # fetch one source (fandom, armor, variants, wikidata, fivethirtyeight, imdb)
 
 Raw files are kept exactly as downloaded. Cleaning happens in build_processed.py.
 The Kaggle suit CSV cannot be fetched without a Kaggle login, so it is committed by hand
@@ -215,8 +215,124 @@ def fetch_armor_pages():
     save(out, json.dumps(payload, ensure_ascii=False, indent=0).encode("utf-8"))
 
 
+def fandom_query(params):
+    """One MediaWiki query, following `continue` until the result is complete. Yields each response."""
+    cont = {}
+    while True:
+        data = json.loads(get(FANDOM_API, {"action": "query", "format": "json", "formatversion": 2, **params, **cont}))
+        yield data
+        if "continue" not in data:
+            return
+        cont = data["continue"]
+        time.sleep(0.35)  # be polite to the wiki
+
+
+def fetch_variants():
+    """Every Tony Stark variant in the Marvel Database (CC BY-SA 3.0): each page titled "Anthony Stark (...)",
+    plus the page a redirect of that form points to (Earth-1610's Tony is filed as "Antonio Stark (Earth-1610)").
+    Per variant: the page wikitext, and the members of its "/Appearances" and "/Minor Appearances" categories.
+    Per appearance page: its date and medium categories (the ones without a "/"), which give the year.
+    Issues already in tony_stark_616_issues.json are not fetched twice; the build step reads their dates from there.
+    About 950 pages and a few thousand appearance pages, so this takes a while. A checkpoint lets it resume."""
+    print("Marvel Database Tony Stark variants")
+    out = RAW / "marvel_fandom" / "tony_variants.json"
+    if not needed(out):
+        return
+    part = out.with_suffix(".partial.json")
+    state = json.loads(part.read_text(encoding="utf-8")) if part.exists() and not FORCE else {}
+
+    def checkpoint():
+        part.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+
+    # 1. page titles (sub-pages such as "/Gallery" are not characters)
+    if "titles" not in state:
+        titles = []
+        for data in fandom_query({"list": "allpages", "apprefix": "Anthony Stark (", "apnamespace": 0, "aplimit": 500}):
+            titles += [p["title"] for p in data["query"]["allpages"] if "/" not in p["title"]]
+        state["titles"] = sorted(set(titles))
+        checkpoint()
+    titles = state["titles"]
+    print(f"  {len(titles)} page titles")
+
+    # 2. wikitext, following redirects
+    if "pages" not in state:
+        pages, redirects = {}, {}
+        for i in range(0, len(titles), 50):
+            for data in fandom_query({"prop": "revisions", "rvprop": "content", "rvslots": "main", "redirects": 1,
+                                      "titles": "|".join(titles[i:i + 50])}):
+                for r in data["query"].get("redirects", []):
+                    redirects[r["from"]] = r["to"]
+                for p in data["query"]["pages"]:
+                    if "revisions" in p:
+                        pages[p["title"]] = p["revisions"][0]["slots"]["main"]["content"]
+            print(f"  wikitext {min(i + 50, len(titles))}/{len(titles)}")
+            time.sleep(0.35)
+        state["pages"], state["redirects"] = pages, redirects
+        checkpoint()
+    pages, redirects = state["pages"], state["redirects"]
+
+    # 3. which appearance categories exist, then their members
+    kinds = ("Appearances", "Minor Appearances")
+    if "members" not in state:
+        names, sizes = sorted(pages), {}
+        cats = [f"Category:{t}/{k}" for t in names for k in kinds]
+        for i in range(0, len(cats), 50):
+            for data in fandom_query({"prop": "categoryinfo", "titles": "|".join(cats[i:i + 50])}):
+                for p in data["query"]["pages"]:
+                    if p.get("categoryinfo", {}).get("pages"):
+                        sizes[p["title"]] = p["categoryinfo"]["pages"]
+            time.sleep(0.35)
+        print(f"  {len(sizes)} appearance categories with pages")
+        members = {}
+        for n, cat in enumerate(sorted(sizes)):
+            got = []
+            for data in fandom_query({"list": "categorymembers", "cmtitle": cat, "cmnamespace": 0, "cmlimit": 500}):
+                got += [m["title"] for m in data["query"]["categorymembers"]]
+            members[cat.removeprefix("Category:")] = got
+            if n % 50 == 49:
+                print(f"  members {n + 1}/{len(sizes)}")
+            time.sleep(0.35)
+        state["members"] = members
+        checkpoint()
+    members = state["members"]
+
+    # 4. date and medium categories of every appearance page not already in the Earth-616 issue file
+    known = set()
+    main_file = RAW / "marvel_fandom" / "tony_stark_616_issues.json"
+    if main_file.exists():
+        known = {i["title"] for i in json.loads(main_file.read_text(encoding="utf-8"))["issues"]}
+    dated = state.setdefault("dated", {})
+    todo = sorted({t for ms in members.values() for t in ms} - known - set(dated))
+    print(f"  {len(todo)} appearance pages to date ({len(dated)} done)")
+    for i in range(0, len(todo), 50):
+        batch = todo[i:i + 50]
+        got = {t: [] for t in batch}
+        for data in fandom_query({"prop": "categories", "cllimit": "max", "titles": "|".join(batch)}):
+            for p in data["query"]["pages"]:
+                got.setdefault(p["title"], [])
+                got[p["title"]] += [c["title"].removeprefix("Category:") for c in p.get("categories", []) if "/" not in c["title"]]
+        dated.update({t: sorted(set(cs)) for t, cs in got.items()})
+        if (i // 50) % 10 == 9:
+            print(f"  dated {i + len(batch)}/{len(todo)}")
+            checkpoint()
+        time.sleep(0.35)
+    checkpoint()
+
+    target = {v: k for k, v in redirects.items()}
+    payload = {
+        "source": "https://marvel.fandom.com/wiki/Special:PrefixIndex?prefix=Anthony+Stark+(",
+        "fetched": time.strftime("%Y-%m-%d"),
+        "variants": [{"title": t, "redirect_from": target.get(t, ""), "wikitext": pages[t],
+                      "appearances": members.get(f"{t}/Appearances", []),
+                      "minor_appearances": members.get(f"{t}/Minor Appearances", [])} for t in sorted(pages)],
+        "appearance_pages": {t: dated[t] for t in sorted(dated)},
+    }
+    save(out, json.dumps(payload, ensure_ascii=False, indent=0).encode("utf-8"))
+    part.unlink(missing_ok=True)
+
+
 SOURCES = {"fivethirtyeight": fetch_fivethirtyeight, "wikidata": fetch_wikidata, "imdb": fetch_imdb, "fandom": fetch_fandom,
-           "armor": fetch_armor_pages}
+           "armor": fetch_armor_pages, "variants": fetch_variants}
 
 if __name__ == "__main__":
     picked = [a for a in sys.argv[1:] if not a.startswith("--")] or list(SOURCES)

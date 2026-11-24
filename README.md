@@ -43,14 +43,21 @@ scripts/build_processed.py  builds data/processed/ from data/raw/
 | 2 · The cave | – | Mark I spec strip | built |
 | 3 · Hall of Armor | `#hall` | Armory Rings: every armor Tony wore, MCU + comics (`armoryRings.js`) | built |
 | 4 · After New York | `#surge` | zoomed beeswarm + box office (`suitTimeline.js`) | built |
-| 5 · The multiverse | `#loom` | Temporal Loom of Tony variants | **slot** |
+| 5 · The multiverse | `#loom` | Temporal Loom: every Tony Stark variant as a thread through era gates (`temporalLoom.js`), the innovative view | built |
 | 6 · Sacrifice | `#snap` | Mark 85 exploded scan (`snapExplode.js`) | built, rebuild planned |
 | Epilogue · Doom | – | full-bleed Doom photo + countdown | built |
 
 Pose backdrops: faint Iron Man / Doom pose images sit behind the Hall of Armor, Loom and Snap headers
 (`assets/img/ghosts/`, `.ghost` in `css/base.css`). The scroll reactor stays underneath them.
 
-Next: Armory Rings (rebuild of the radial chart with MCU + comic armors), then the Temporal Loom (innovative view).
+The thread river: the threads of the Temporal Loom run behind the whole page (`js/core/threadRiver.js`, one canvas,
+`#thread-river`). They start under the hero image, swing down the page in one slow curve per chapter, enter the loom
+from the left, leave it on the right, turn Doom green and end in the Doom image. Each thread is one variant from
+`variants.csv`. The river finds its way from the page itself: it starts at the element with `data-river-start`, ends
+at the one with `data-river-end`, and bends once for every `main > section`. If you add or reorder a chapter, it
+re-routes on its own. It sits below `<main>`, takes no pointer events, and dims itself under text and charts
+(`shieldOn` in the module lists the selectors it treats as content; add yours if your chart uses a new class).
+
 Other chapters and any extra chart types are open for teammates to extend.
 The course needs at least 5 visualization techniques, one of them innovative.
 
@@ -69,6 +76,7 @@ The first draft lagged. These keep the page smooth:
 - **Decorative images are pre-baked.** Pose backdrops carry their tint and soft edge in the WebP itself; no `mix-blend-mode`, `filter` or `mask-image` at runtime.
 - **Views mount lazily.** Each view's code and data load only when its section is about 800px away.
 - **Animate on canvas when there are many marks.** The snap explosion pre-renders ~250 shard sprites in idle time and runs an animation frame only while shards move.
+- **Bake what does not change.** The loom draws its 786 threads once into a canvas; a hover redraws one thread. The thread river scrolls natively (an absolutely positioned canvas, not a fixed one), draws threads as yarns of 5, puts its glow in a buffer an eighth of the canvas size, and lowers its own resolution or detail if frames run late (`?debug` in the URL exposes `__river.stats()`).
 - **No `backdrop-filter` and no SVG filters on elements that move.**
 - **Images are WebP with `srcset`, lazy-loaded below the fold.**
 - **Precompute in Python, not in the browser.** Parsing and aggregation happen in `scripts/build_processed.py`.

@@ -6,15 +6,15 @@
 #armoryChart:focus-visible { outline: 1px dashed var(--arc); outline-offset: 6px; }
 #armoryChart .piece { stroke: var(--bg); stroke-width: 1; }
 #armoryChart .piece.on { stroke: #fff; stroke-width: 1.6; }
-#armoryChart .lbl { font: 9.5px var(--f-mono); fill: #d8c9b0; pointer-events: none; }
+#armoryChart .lbl { font: 11px var(--f-mono); fill: #d8c9b0; pointer-events: none; }
 #armoryChart .lbl.on { fill: #fff4d6; font-weight: 600; }
-#armoryChart .grp { font: 600 10px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; pointer-events: none; }
+#armoryChart .grp { font: 600 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; pointer-events: none; }
 #armoryChart .half { font: 600 11px var(--f-mono); letter-spacing: .2em; pointer-events: none; }
 #armoryChart .core circle { fill: #1a0f0c; stroke: var(--gold); stroke-width: 1.5; }
 #armoryChart .piece.snap { stroke: #ffe08a; stroke-width: 1.4; }
 #armoryChart .snap-notch { fill: #ffe08a; pointer-events: none; }
 #armoryChart .core-n { font: 700 40px var(--f-display); fill: var(--fg); }
-#armoryChart .core-l { font: 9.5px var(--f-mono); letter-spacing: .2em; fill: var(--muted); }
+#armoryChart .core-l { font: 11px var(--f-mono); letter-spacing: .2em; fill: var(--muted); }
 .snd { display: block; margin: 16px auto 0; font: 600 11.5px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: transparent; border: 1px solid var(--line); padding: 7px 12px; cursor: pointer; }
 .snd[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
 .suit-panel .snap-note { font: 12px var(--f-mono); color: #ffe08a; margin-top: 10px; letter-spacing: .04em; }
@@ -32,10 +32,10 @@
 
 .suit-panel .model { font: 700 34px/1 var(--f-display); }
 .suit-panel .code { font: 13px var(--f-mono); color: var(--gold); margin-top: 6px; }
-.suit-panel .chip { display: inline-block; font: 600 10.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; margin-top: 10px; color: var(--bg); }
+.suit-panel .chip { display: inline-block; font: 600 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; margin-top: 10px; color: var(--bg); }
 .suit-panel .ability { margin-top: 18px; font-size: 17px; }
 .suit-panel dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line); }
-.suit-panel dt { font: 10.5px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.suit-panel dt { font: 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .suit-panel dd { margin: 3px 0 0; font: 600 19px var(--f-display); font-variant-numeric: tabular-nums; }
 .suit-panel .films { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .suit-panel .films span { font: 12px var(--f-mono); border: 1px solid var(--line); padding: 3px 8px; color: var(--fg-soft); }
@@ -44,35 +44,114 @@
 /* ---------- comicsByYear.js: issues per year (area) + Doom overlap + armor models (line) ---------- */
 #comicsChart { width: 100%; min-width: 760px; display: block; outline: none; }
 #comicsChart:focus-visible { outline: 1px dashed var(--arc); outline-offset: 4px; }
-#comicsChart .axis text { font: 10.5px var(--f-mono); fill: var(--muted); }
+#comicsChart .axis text { font: 11px var(--f-mono); fill: var(--muted); }
 #comicsChart .axis path, #comicsChart .axis line { stroke: #2a3947; }
 #comicsChart .grid line { stroke: #18222c; }
-#comicsChart .ttl { font: 10.5px var(--f-mono); letter-spacing: .1em; fill: var(--muted); text-transform: uppercase; }
+#comicsChart .ttl { font: 11px var(--f-mono); letter-spacing: .1em; fill: var(--muted); text-transform: uppercase; }
 #comicsChart .rule { stroke: var(--fg); stroke-opacity: .45; pointer-events: none; }
 #comicsChart circle { stroke: var(--bg); stroke-width: 1.5; pointer-events: none; }
 #comicsLegend button[aria-pressed="false"] { opacity: .4; }
 
 /* ---------- suitTimeline.js: zoomed beeswarm + box-office strip ---------- */
-.chart-box { position: relative; margin-top: 34px; overflow-x: auto; }
+.chart-box { position: relative; margin-top: 34px; overflow-x: auto; overflow-y: hidden; }
+@media (min-width: 861px) { .chart-box { overflow: visible; } }   /* the charts fit at this width: no scrollbars */
 #timeline { width: 100%; min-width: 760px; display: block; }
-#timeline .axis text { font: 10.5px var(--f-mono); fill: var(--muted); }
+#timeline .axis text { font: 11px var(--f-mono); fill: var(--muted); }
 #timeline .axis path, #timeline .axis line { stroke: #2a3947; }
 #timeline .gridl { stroke: #18222c; }
 #timeline .dot { stroke: var(--bg); stroke-width: 1.2; cursor: pointer; }
 #timeline .dot.on { stroke: #fff; stroke-width: 2; }
 #timeline .band { fill: var(--red); opacity: .09; }
 #timeline .band-edge { stroke: var(--red); stroke-dasharray: 3 3; opacity: .6; }
-#timeline .ann { font: 12.5px var(--f-body); fill: var(--fg-soft); }
+#timeline .ann { font: 11.5px var(--f-mono); fill: var(--fg-soft); }
 #timeline .ann-b { font: 600 14px var(--f-display); fill: var(--fg); }
 #timeline .ann-line { stroke: var(--muted); fill: none; }
 #timeline .film { fill: #3a4b5c; cursor: pointer; }
 #timeline .film:hover { fill: var(--gold); }
-#timeline .film-lbl { font: 10px var(--f-mono); fill: var(--muted); text-anchor: middle; }
-#timeline .film-v { font: 10px var(--f-mono); fill: var(--fg); text-anchor: middle; }
-#timeline .ttl { font: 10.5px var(--f-mono); letter-spacing: .1em; fill: var(--muted); text-transform: uppercase; }
+#timeline .film-lbl { font: 11px var(--f-mono); fill: var(--muted); text-anchor: middle; }
+#timeline .film-v { font: 11px var(--f-mono); fill: var(--fg); text-anchor: middle; }
+#timeline .ttl { font: 11px var(--f-mono); letter-spacing: .1em; fill: var(--muted); text-transform: uppercase; }
 .tip { position: absolute; pointer-events: none; z-index: 3; background: #0b1118; border: 1px solid var(--live); padding: 8px 11px; font-size: 13px; line-height: 1.4; max-width: 260px; opacity: 0; transition: opacity .12s; }
 .tip b { font: 600 15px var(--f-display); }
 .tip .m { font: 11px var(--f-mono); color: var(--muted); }
+
+/* ---------- temporalLoom.js: every Tony Stark variant as a thread through era gates ----------
+   Three layers in one box: baked threads (canvas), the touched thread (canvas), gates/labels/axis (SVG). */
+.loom-tools { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; margin-top: 26px; }
+.loom-find { display: grid; gap: 5px; font: 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.loom-find input { font: 500 13px var(--f-mono); color: var(--fg); background: var(--panel); border: 1px solid var(--line); padding: 7px 10px; width: 210px; }
+.loom-find input:focus-visible { outline: none; border-color: #4dff6a; }
+.loom-quick { font: 600 11.5px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--fg-soft); background: transparent; border: 1px solid var(--line); padding: 8px 12px; cursor: pointer; }
+.loom-quick:hover, .loom-quick:focus-visible { color: #4dff6a; border-color: #4dff6a; outline: none; }
+.loom-lens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.loom-lens button { font: 500 11.5px var(--f-mono); letter-spacing: .05em; color: var(--fg-soft); background: transparent; border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; display: inline-flex; gap: 8px; align-items: baseline; }
+.loom-lens button b { font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.loom-lens button:hover, .loom-lens button:focus-visible { border-color: var(--fg); outline: none; }
+.loom-lens button[aria-pressed="true"] { color: var(--bg); background: var(--arc); border-color: var(--arc); }
+.loom-lens button[aria-pressed="true"] b { color: var(--bg); }
+.loom-lens-note { margin-top: 8px; min-height: 1.5em; }
+.loom-stage { position: relative; z-index: 2; height: clamp(440px, 66vh, 640px); margin-top: 18px; outline: none; touch-action: pan-y; -webkit-tap-highlight-color: transparent; }
+.loom-stage:focus-visible { outline: 1px dashed var(--arc); outline-offset: -4px; }
+.loom-stage canvas, .loom-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.loom-base { transition: opacity .28s ease; }
+.loom-stage.has-pick .loom-base { opacity: .6; }
+.loom-stage svg { overflow: visible; }
+.loom-stage .gate .rim { fill: var(--gold); }
+.loom-stage .gate .rim.thin { fill: #ffe9b8; opacity: .55; }
+.loom-stage .gate-n { font: 700 17px var(--f-display); fill: var(--fg); text-anchor: middle; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+.loom-stage .gate-era { font: 11px var(--f-mono); letter-spacing: .12em; fill: var(--gold); text-anchor: middle; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+.loom-stage .axis text { font: 11px var(--f-mono); fill: var(--muted); }
+.loom-stage .axis path, .loom-stage .axis line { stroke: #2a3947; }
+.loom-stage .axis-ttl { font: 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; fill: var(--muted); text-anchor: middle; }
+.loom-stage .lane { font: 600 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; text-anchor: end; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+.loom-stage .marks circle { fill: var(--bg); stroke: #4dff6a; stroke-width: 2; }
+.loom-stage .marks .death circle { stroke: var(--red); fill: var(--red); }
+.loom-stage .marks text { font: 600 11px var(--f-mono); letter-spacing: .06em; fill: #c8ffd0; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+.loom-stage .marks .death text { fill: #ff9d8a; }
+.loom-stage .tip { left: 0; top: 0; border-color: #4dff6a; white-space: nowrap; will-change: transform; }
+.loom-legend { justify-content: flex-start; gap: 8px 22px; margin-top: 6px; }
+.loom-legend .key { display: inline-flex; align-items: center; gap: 8px; font: 11.5px var(--f-mono); color: var(--muted); letter-spacing: .04em; }
+.loom-legend .ramp { width: 70px; height: 6px; display: inline-block; }
+.loom-legend .ring { width: 7px; height: 16px; border: 2px solid var(--gold); border-radius: 50%; display: inline-block; }
+.loom-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #fffaf0; }
+.loom-legend .dot.death { background: var(--red); }
+.loom-legend .dot.pick { background: #4dff6a; }
+.loom-panel { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; margin-top: 18px; min-height: 476px; background: rgba(12, 17, 25, .93); }
+.loom-panel h3 { font: 600 11px var(--f-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.loom-panel .model { font: 700 30px/1.05 var(--f-display); color: #4dff6a; overflow-wrap: anywhere; }
+.loom-panel .lane-chip { font: 600 11px var(--f-mono); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; }
+.loom-panel .code { font: 13px var(--f-mono); color: var(--fg-soft); margin-top: 8px; }
+.loom-panel dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.loom-panel dt { font: 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.loom-panel dd { margin: 3px 0 0; font: 600 16px var(--f-display); overflow-wrap: anywhere; }
+.loom-panel ol { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.loom-panel .events li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.loom-panel .events span { font: 11px var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.loom-panel .events b { font: 700 18px var(--f-display); font-variant-numeric: tabular-nums; grid-row: span 2; align-self: center; }
+.loom-panel .events em { font-style: normal; font-size: 14.5px; color: var(--fg-soft); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.loom-panel dd { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.loom-panel .loom-journey ol { counter-reset: step; max-height: 208px; overflow-y: auto; gap: 5px; padding-right: 6px; }
+.loom-panel .loom-journey li { counter-increment: step; font-size: 14.5px; color: var(--fg-soft); display: grid; grid-template-columns: 26px 1fr; }
+.loom-panel .loom-journey li::before { content: counter(step); font: 11px var(--f-mono); color: #4dff6a; padding-top: 3px; }
+.loom-panel .note { margin-top: 10px; }
+.loom-panel .src { font: 12px var(--f-mono); margin-top: 12px; }
+.loom-panel .loom-empty { grid-column: span 2; max-width: 60ch; color: var(--fg-soft); display: grid; gap: 12px; align-content: start; }
+.loom-panel .loom-empty .model { color: var(--fg); }
+.loom-lanes ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 7px; }
+.loom-lanes li { display: grid; grid-template-columns: 9.5em 1fr 3.2em; gap: 10px; align-items: center; font: 11.5px var(--f-mono); color: var(--fg-soft); }
+.loom-lanes i { height: 7px; background: var(--line); display: block; }
+.loom-lanes b { height: 100%; display: block; }
+.loom-lanes em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; color: var(--fg); }
+.loom-spark { width: 100%; height: auto; display: block; margin-top: 14px; }
+.loom-spark rect { fill: #4dff6a; }
+.loom-spark .base { stroke: var(--line); }
+.loom-spark text { font: 11px var(--f-mono); fill: var(--muted); }
+@media (max-width: 860px) {
+  .loom-panel { grid-template-columns: 1fr; min-height: 0; }
+  .loom-stage { height: clamp(360px, 60vh, 520px); }
+  .loom-stage .lane, .loom-stage .gate-era, .loom-stage .axis-ttl { display: none; }
+  .loom-stage .gate-n { font-size: 12px; }
+}
 
 /* ---------- snapExplode.js: canvas shards over an SVG F.R.I.D.A.Y. scan ---------- */
 .iam { position: relative; margin: 30px 0 0; }
