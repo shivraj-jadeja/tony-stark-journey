@@ -57,15 +57,20 @@ const CFG = {
   line: [1.55, 1.15],       // thread width, CSS px: yarns in the river, single threads fanning into the loom
   alpha: 0.06,              // light of one thread
   glow: { every: 3, radius: 2.9, alpha: 0.15, scale: 8 },   // drawn into a buffer 1/scale the size, then stretched once
-  shield: { scale: 16, grow: 14, strength: 0.72 },          // dimming behind content: mask buffer 1/scale the size (its
+  shield: { scale: 40, grow: 26, strength: 0.72 },          // dimming behind content: mask buffer 1/scale the size (its
                                                             // stretch is the soft edge), box growth px, light removed
-  shieldOn: "h1, h2, .eyebrow, .sub, .meta, .cue, .prose, .spec, .chart-box, .hall-grid, .panel, .iam, .snap, .loom-tools, .loom-lens, .legend, .note, .notes-grid, .countdown, .slot",
+  shieldOn: "h1, h2, .eyebrow, .sub, .meta, .prose, .spec, .chart-box, .hall-grid, .panel, .iam, .snap, .loom-tools, .loom-lens, .legend, .note, .notes-grid, .countdown, .slot, .ghost",
+  shieldInset: { ".ghost": 0.1 },                           // images with a feathered edge: the box is this much smaller
   reach: 1.1,               // the selected thread stays green this many viewport heights up and down the river
   motes: 36,                // sparks riding the threads downstream
-  fan: [1.5, 220, 900],     // fan length: x the gate's distance from the turn's outer edge, min px, max px
-  turn: { outside: 0.03, share: 0.62 },   // the turn into and out of the loom: how far outside the page edge its
-                                          // straight part runs (share of width), and its radius (share of the room)
-  loosen: [0.9, 1.5],       // near a gate the bundle is up to this much wider, starting this many screen heights away
+  fan: [0.5, 110, 520],     // fan length: x the gate's distance from the turn's outer edge, min px, max px (it stays
+                            // on the straight run, so the turn itself is a tight ribbon that cannot fold)
+  dip: [0.42, 0.95],        // brightness fades to this share on the way to a gate, over this many screen heights,
+                            // then rises again across the fan: no step where the river meets the loom
+  // The C-turn into the loom and its mirror out of it. The river never leaves the page: its centreline keeps
+  // `clear` bundle half-widths (at least `inside` of the width) away from the edge. `share` = corner radius as a
+  // share of the room between that line and the gate; `tall` = height of the C in radii.
+  turn: { inside: 0.06, clear: 1.75, share: 0.72, tall: 2.4, pinch: 0.55, reach: 1.1 },
   fade: 0.5,                // the river fades in over this share of a viewport height at its start
   stir: { cell: 54, radius: 150, gain: 0.45, max: 56, spring: 24, damp: 5.2 },
   highlight: "#4dff6a", highlightCore: "#c8ffd0"
@@ -240,23 +245,28 @@ export function initThreadRiver({ canvas, model, tints, start, stage, end, betwe
     const x0 = st.left + geom.x0, x1 = st.left + geom.x1, yc = st.top + geom.yc;
     const loomBox = box(all[iLoom]);
     const yA = from.top + from.height * syF + vh * 0.03;
-    const A = [[from.left + from.width * sxF + vw * 0.08, yA], [from.left + from.width * sxF - vw * 0.1, yA + vh * 0.07]];
-    swing(before, before.length % 2, A);
-    // The turn into the loom is one wide quarter-arc: down just outside the left edge, round a single corner point,
-    // then straight in. Its radius (turnA) is as large as the room beside and above the gate allows.
-    const head = st.top - loomBox.top, run = yc - st.top, edgeA = -vw * CFG.turn.outside, turnA = Math.min(run, (x0 - edgeA) * CFG.turn.share);
-    A.push([vw * 0.1, loomBox.top + head * 0.45], [edgeA, yc - turnA * 1.7], [edgeA, yc - turnA * 0.9], [edgeA, yc],
-           [edgeA + turnA * 0.9, yc], [x0 - (x0 - edgeA - turnA * 0.9) * 0.45, yc], [x0, yc]);
+    const inside = Math.max(vw * CFG.turn.inside, base * CFG.turn.clear);   // closest the centreline comes to a page edge
+    const startX = Math.min(from.left + from.width * sxF, vw) - inside;
+    const A = [[startX, yA], [startX - vw * 0.06, yA + vh * 0.09]];
+    swing(before, (before.length + 1) % 2, A);             // the last chapter before the loom is passed on the LEFT
+    // Into the loom: one more S, like the swings above it. From the left swing the river keeps coming down, leans
+    // out to a line just inside the left edge and bends once, wide, into the gate. The bend is one corner point:
+    // `turnA` wide and `dropA` tall, as large as the room allows, and the bundle is pinched narrow there, so the
+    // threads on the inside of the bend still have room to turn without crossing.
+    const head = st.top - loomBox.top, run = yc - st.top;
+    const near = Math.max(vw * CFG.turn.inside * CFG.turn.pinch, base * CFG.turn.pinch * CFG.turn.clear);   // edge clearance of the pinched bundle
+    const edgeA = near, turnA = (x0 - edgeA) * CFG.turn.share, dropA = clamp(run + head * 0.4, turnA, turnA * CFG.turn.tall);
+    A.push([edgeA, yc - dropA], [edgeA, yc], [edgeA + turnA, yc], [x0 - (x0 - edgeA - turnA) * 0.4, yc], [x0, yc]);
     const a = sample(A, 0);
 
     // B: loom exit gate → down the right of the loom chapter → one swing per chapter → the end image
     const after = all.slice(iLoom + 1, iEnd < 0 ? all.length : iEnd);
     const yEnd = to.top + to.height * eyF, xEnd = to.left + to.width * exF;
     const rest = vw - x1, runB = st.bottom - yc, tail = loomBox.bottom - st.bottom;
-    const edgeB = vw * (1 + CFG.turn.outside), turnB = Math.min(runB, (edgeB - x1) * CFG.turn.share);
-    const B = [[x1, yc], [x1 + (edgeB - turnB * 0.9 - x1) * 0.45, yc], [edgeB - turnB * 0.9, yc], [edgeB, yc],
-               [edgeB, yc + turnB * 0.9], [edgeB, yc + turnB * 1.7], [vw * 0.9, Math.max(st.bottom + tail * 0.45, yc + turnB * 2.4)]];
-    swing(after, 0, B);
+    // the way out mirrors it: straight out of the last gate, one wide bend down the right, then the next swing (right)
+    const edgeB = vw - near, turnB = (edgeB - x1) * CFG.turn.share, dropB = clamp(runB + tail * 0.4, turnB, turnB * CFG.turn.tall);
+    const B = [[x1, yc], [x1 + (edgeB - turnB - x1) * 0.4, yc], [edgeB - turnB, yc], [edgeB, yc], [edgeB, yc + dropB]];
+    swing(after, 1, B);
     const yLast = B[B.length - 1][1], gap = to.top - yLast;
     B.push([xEnd + (B[B.length - 1][0] - xEnd) * 0.5, yLast + gap * 0.55], [xEnd, to.top - gap * 0.1], [xEnd, to.top + (yEnd - to.top) * 0.5], [xEnd, yEnd]);
     const b = sample(B, a.len + (x1 - x0));
@@ -279,8 +289,8 @@ export function initThreadRiver({ canvas, model, tints, start, stage, end, betwe
     const rects = [];
     for (const el of mainEl.querySelectorAll(CFG.shieldOn)) {
       if (stage.contains(el) || el.parentElement.closest(CFG.shieldOn) || el.closest("[data-river-start], [data-river-end]")) continue;
-      const r = box(el);
-      if (r.width > 4 && r.height > 4) rects.push(r.left, r.top, r.width, r.height);
+      const r = box(el), cut = Object.entries(CFG.shieldInset).find(([sel]) => el.matches(sel))?.[1] || 0;
+      if (r.width > 4 && r.height > 4) rects.push(r.left + r.width * cut, r.top + r.height * cut, r.width * (1 - 2 * cut), r.height * (1 - 2 * cut));
     }
     shields = Float32Array.from(rects);
 
@@ -298,14 +308,16 @@ export function initThreadRiver({ canvas, model, tints, start, stage, end, betwe
         seg.calm[i] = sum / cnt;                            // 1 = under content: the pointer does not stir it there
         const s = seg.s0 + i * seg.ds, dStart = i * seg.ds, dEnd = seg.len - dStart;
         const taper = seg === a ? 0.5 + 0.5 * clamp(dStart / (vh * 0.8), 0, 1) : 0.3 + 0.7 * clamp(dEnd / (vh * 0.9), 0, 1);
-        // towards a gate the bundle loosens early (well before the fan), which spreads its light
-        const toGate = seg === a ? dEnd : dStart, loose = 1 + CFG.loosen[0] * (1 - clamp(toGate / (vh * CFG.loosen[1]), 0, 1)) ** 2;
-        seg.wid[i] = base * (1 + CFG.breathe * Math.sin(s * 0.0011 + 1.3)) * taper * loose;
+        // towards a gate the bundle is pinched narrower (eased over CFG.turn.reach screen heights), for the bend
+        const toGate = seg === a ? dEnd : dStart, open = clamp(toGate / (vh * CFG.turn.reach), 0, 1), pinch = CFG.turn.pinch + (1 - CFG.turn.pinch) * open * open * (3 - 2 * open);
+        seg.wid[i] = base * (1 + CFG.breathe * Math.sin(s * 0.0011 + 1.3) * open) * taper * pinch;
       }
     }
     a.fanFrom = Math.max(0, lowerBound(a.g, a.n, 1e-6) - 1); a.fanTo = a.n - 1; a.loomHalf = sc.entryHalf; a.kind = "A";
     b.fanFrom = 0; b.fanTo = b.n - 1; while (b.fanTo > 0 && b.g[b.fanTo - 1] === 0) b.fanTo--; b.loomHalf = sc.exitHalf; b.kind = "B";
     a.y0 = yA; a.y1 = yc; b.y0 = yc; b.y1 = yEnd;
+    a.fanX = [a.x[a.fanFrom], x0]; b.fanX = [x1, b.x[b.fanTo]];   // page x where each fan starts and ends
+    a.level = dropA * 0.3; b.level = dropB * 0.3;           // page height near the gate over which the light stays level
     segs = [a, b];
     junction = { top: st.top, bottom: st.bottom, x0, x1, ov: geom.ov };
     const total = a.len + b.len;
@@ -356,13 +368,18 @@ export function initThreadRiver({ canvas, model, tints, start, stage, end, betwe
   function paint(seg, tint, top) {
     const grad = ctx.createLinearGradient(0, seg.y0 - top, 0, seg.y1 - top), c = d3.rgb(tint);
     const rgba = (col, al) => `rgba(${col.r | 0},${col.g | 0},${col.b | 0},${al})`;
+    const span = seg.y1 - seg.y0, dip = clamp(vh * CFG.dip[1] / span, 0.02, 0.3);
     if (seg.kind === "A") {
       grad.addColorStop(0, rgba(c, 0));
-      grad.addColorStop(clamp(vh * CFG.fade / (seg.y1 - seg.y0), 0.01, 0.9), rgba(c, 1));
-      grad.addColorStop(1, rgba(c, 1));
+      grad.addColorStop(clamp(vh * CFG.fade / span, 0.01, 0.6), rgba(c, 1));
+      // dimmed fully before the fan starts and level from there on, so the yarns and the fan meet at one brightness
+      grad.addColorStop(1 - dip, rgba(c, 1));
+      grad.addColorStop(1 - Math.min(dip * 0.6, seg.level / span), rgba(c, CFG.dip[0]));
+      grad.addColorStop(1, rgba(c, CFG.dip[0]));
     } else {
-      grad.addColorStop(0, rgba(c, 1));
-      grad.addColorStop(0.1, rgba(c, 1));
+      grad.addColorStop(0, rgba(c, CFG.dip[0]));
+      grad.addColorStop(Math.min(dip * 0.6, seg.level / span), rgba(c, CFG.dip[0]));
+      grad.addColorStop(dip, rgba(c, 1));
       grad.addColorStop(0.42, rgba(d3.rgb(d3.interpolateRgb(c, doom[0])(0.85)), 1));
       grad.addColorStop(0.78, rgba(doom[1].brighter(0.5), 0.95));
       grad.addColorStop(0.97, rgba(doom[1], 0.7));
@@ -403,36 +420,55 @@ export function initThreadRiver({ canvas, model, tints, start, stage, end, betwe
     const stride = 1 + lite, thin = lite ? 2 : 1;
     const nr = pickSamples(listA, isA ? a : Math.max(a, seg.fanTo), isA ? Math.min(b, seg.fanFrom) : b, stride, isA ? seg.fanFrom : seg.fanTo);
     const nf = pickSamples(listB, Math.max(a, seg.fanFrom), Math.min(b, seg.fanTo), Math.max(2, stride), isA ? seg.fanTo : seg.fanFrom);
-    const grads = new Map();
+    const grads = new Map(), fans = new Map();
     ctx.globalCompositeOperation = "lighter";
-    ctx.lineCap = "round";
+    ctx.lineCap = "butt";                                   // round ends would overlap where a yarn meets its fan and show as a seam
     for (const w of waves) {
       wave(seg, w, a, b, t);
       if (!grads.has(w.tint)) grads.set(w.tint, paint(seg, w.tint, top));
       ctx.strokeStyle = grads.get(w.tint);
       const near = 0.8 + 0.2 * sD[(b - a) >> 1] / CFG.depth;            // strands in front are a little brighter
+      // a yarn carries the light of its threads (the strand's average yarn size), spread over its wider line
+      const perYarn = w.strand.items.length / w.yarns.length;
+      const yarnLight = Math.min(1, CFG.alpha * perYarn * near * CFG.line[1] / CFG.line[0] * 1.25);
       if (nr >= 2) {
         const skip = w.yarns.length > 1 ? stride : 1;
         ctx.lineWidth = CFG.line[0];
         ctx.beginPath();
-        let lightSum = 0, drawn = 0;
         for (let i = 0; i < w.yarns.length; i += skip) {
-          const y = w.yarns[i];
-          lightSum += y.members.length; drawn++;
-          traceShift(seg, w, y.lead.su, y.lead.sv, y.lead.u, a, listA, nr, top);
+          const lead = w.yarns[i].lead;
+          traceShift(seg, w, lead.su, lead.sv, lead.u, a, listA, nr, top);
           curve(nr);
         }
-        // a yarn carries the light of its threads, spread over its wider line
-        ctx.globalAlpha = Math.min(1, CFG.alpha * (lightSum / drawn) * skip * near * CFG.line[1] / CFG.line[0] * 1.25);
+        ctx.globalAlpha = Math.min(1, yarnLight * skip);
         ctx.stroke();
       }
       if (nf >= 2) {
-        const items = w.strand.items, each = items.length > 1 ? thin : 1;
-        ctx.lineWidth = CFG.line[1];
-        ctx.globalAlpha = Math.min(1, CFG.alpha * near * each * 1.25);
+        // The fan. Lines that lie on top of each other in one stroke do not add their light, so a yarn cannot simply
+        // be replaced by its threads where it frays. Instead its lead thread carries on and hands the light over:
+        // across the fan the lead fades from the whole yarn's light (dipped) to one thread's, while its siblings
+        // fade in from nothing to one thread's. Same line width throughout. No step at either end.
+        const items = w.strand.items, one = 1 / perYarn;
+        if (!fans.has(w.tint)) {
+          const c = d3.rgb(w.tint), col = al => `rgba(${c.r},${c.g},${c.b},${al})`;
+          const lead = ctx.createLinearGradient(seg.fanX[0], 0, seg.fanX[1], 0), sib = ctx.createLinearGradient(seg.fanX[0], 0, seg.fanX[1], 0);
+          lead.addColorStop(isA ? 0 : 1, col(CFG.dip[0])); lead.addColorStop(isA ? 1 : 0, col(Math.min(1, one)));
+          sib.addColorStop(isA ? 0 : 1, col(0)); sib.addColorStop(isA ? 1 : 0, col(Math.min(1, one)));
+          fans.set(w.tint, [lead, sib]);
+        }
+        const [leadStyle, sibStyle] = fans.get(w.tint);
+        ctx.lineWidth = CFG.line[0];
+        ctx.globalAlpha = yarnLight;
+        ctx.strokeStyle = leadStyle;
         ctx.beginPath();
-        for (let i = 0; i < items.length; i += each) {
+        for (const y of w.yarns) { traceShift(seg, w, y.lead.su, y.lead.sv, y.lead.u, a, listB, nf, top); curve(nf); }
+        ctx.stroke();
+        ctx.globalAlpha = Math.min(1, yarnLight * thin);
+        ctx.strokeStyle = sibStyle;
+        ctx.beginPath();
+        for (let i = 0, k = 0; i < items.length; i++) {
           const v = items[i];
+          if (v.yarn === v || k++ % thin) continue;
           traceShift(seg, w, v.yarn.su, v.yarn.sv, v.u, a, listB, nf, top);
           curve(nf);
         }

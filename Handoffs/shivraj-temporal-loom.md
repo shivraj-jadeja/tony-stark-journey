@@ -7,7 +7,7 @@ Written Nov 24, 2026. Read the "Adding a chart" section before you add or change
 | File | What it is |
 |---|---|
 | `js/views/temporalLoom.js` | The loom chart (Chapter 5). Every Tony Stark variant in the Marvel Database (786) is one thread running left to right by year. A thread is faint for its whole length and bright in the years that Tony appears. Threads sit in lanes by kind. The entry gate lets all threads in; each later gate closes an era, and its radius is the number of Tonys seen in that era. White dot = first dated appearance, red dot = listed death. |
-| `js/core/threadRiver.js` | The same 786 threads as the page background, on one canvas (`#thread-river`) under `<main>`. They start under the hero image, swing down the page in one slow curve per chapter, enter the loom from the left, leave on the right, turn Doom green and end in the Doom image. |
+| `js/core/threadRiver.js` | The same 786 threads as the page background, on one canvas (`#thread-river`) under `<main>`. They start under the hero image, swing down the page in one slow curve per chapter, enter the loom from the left, leave on the right, turn Doom green and end in the Doom image. They never leave the page: one wide bend takes them into the loom on the left and one out of it on the right. |
 | `js/core/loomLayout.js` | Thread order, lanes, eras, gate sizes and lane colours, shared by the two files above. |
 | `js/core/data.js` | `loadVariants()` |
 | `js/main.js` | Builds the loom model once, starts the river in idle time, mounts the loom when its section is near. |
@@ -33,7 +33,7 @@ What the river needs from you:
 
 1. **Put the chapter in its own `<section>` directly inside `<main>`.** The river bends once for every `main > section`, alternating left and right, and re-routes by itself when a section is added, moved or changes height. No river code to edit.
 2. **Keep the section background transparent** if you want the threads to show behind it. An opaque background simply hides them there.
-3. **Use the shared classes for content, so the river dims under it.** It dims to about 28% under these and cannot be stirred there: `h1, h2, .eyebrow, .prose, .spec, .chart-box, .hall-grid, .panel, .legend, .note, .notes-grid, .slot` (full list: `shieldOn` at the top of `js/core/threadRiver.js`). Wrap a chart in `.chart-box` and it is covered. If you invent a new wrapper class, add it to `shieldOn`, or bright threads will run under your chart.
+3. **Use the shared classes for content, so the river dims under it.** It dims to about 28% under these and cannot be stirred there: `h1, h2, .eyebrow, .prose, .spec, .chart-box, .hall-grid, .panel, .legend, .note, .notes-grid, .slot, .ghost` (full list: `shieldOn` at the top of `js/core/threadRiver.js`). Wrap a chart in `.chart-box` and it is covered. If you invent a new wrapper class, add it to `shieldOn`, or bright threads will run under your chart.
 4. **Do not give anything `position: fixed` with a z-index below 1**, and do not put elements outside `<main>` between the canvas and the content. The canvas is `z-index: 0`, `<main>` is `z-index: 1`.
 5. **Do not move or rename** `data-river-start` (hero figure), `data-river-end` (Doom figure) or `#loomStage`. The river starts, passes through and ends at those.
 6. The river takes no pointer events, so it cannot block your hover or click handlers.
