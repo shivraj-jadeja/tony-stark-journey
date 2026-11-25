@@ -19,6 +19,9 @@ const NS = "http://www.w3.org/2000/svg";
 const VB = { x: 640, y: 60, w: 1060, h: 748 };       // visible crop of the still
 const CENTER = [1207, 470];                            // explosion center (arc reactor)
 const DUR = 800, SPREAD = 0.5, SHRINK = 0.22;
+// How an armor plate is rendered once it is off the body: canvas filter that lifts the dark frame's own colours,
+// bevel strength [highlight, shade], rim [width in still px, colour].
+const SHARD = { lift: "brightness(1.85) saturate(2.1) contrast(1.15) hue-rotate(14deg)", bevel: [0.3, 0.38], rim: [1.3, "rgba(255,206,140,.85)"] };
 
 const ARMOR = [
   { d: 120, pts: [[1060,345],[1110,330],[1150,335],[1190,345],[1235,330],[1290,340],[1300,380],[1240,395],[1180,400],[1110,395],[1065,385]] }, // collar
@@ -245,7 +248,22 @@ export async function mountSnapExplode({ stage, keys, src }) {
         ctx.setTransform(k, 0, 0, k, -bx * k, -by * k);
         ctx.clip(new Path2D(`M${s.part.pts.join("L")}Z`));
         ctx.clip(s.edge);
+        // The plate is the still's own pixels, lifted once here: the frame is dark, so its red and gold are
+        // brightened, saturated and turned 14 degrees from magenta toward red (nothing is painted in). Then a bevel (light from the top left, shade at the
+        // bottom right) and a bright rim are baked on, so each piece reads as a solid plate. All of this happens
+        // once per plate, in idle time; a frame only blits the result.
+        ctx.filter = SHARD.lift;
         ctx.drawImage(img, 0, 0);
+        ctx.filter = "none";
+        ctx.globalCompositeOperation = "source-atop";
+        const bevel = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+        bevel.addColorStop(0, `rgba(255,244,224,${SHARD.bevel[0]})`); bevel.addColorStop(0.45, "rgba(255,244,224,0)");
+        bevel.addColorStop(0.6, "rgba(0,0,0,0)"); bevel.addColorStop(1, `rgba(0,0,0,${SHARD.bevel[1]})`);
+        ctx.fillStyle = bevel;
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.lineWidth = SHARD.rim[0] * 2;                  // half of the stroke falls outside the clip
+        ctx.strokeStyle = SHARD.rim[1];
+        ctx.stroke(s.edge);
         out.push(c);
       }
       if (out.length < shards.length && !all) schedule(step);
@@ -261,7 +279,6 @@ export async function mountSnapExplode({ stage, keys, src }) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
     if (!sprites || sprites.length < shards.length) buildSprites(spriteJob, true);
-    ctx.strokeStyle = "#5fd8ff";
     for (let i = 0; i < shards.length; i++) {
       const s = shards[i], e = s.cur;
       if (e <= 0 && !open) continue;
@@ -271,13 +288,8 @@ export async function mountSnapExplode({ stage, keys, src }) {
       ctx.rotate(s.rot * e);
       ctx.scale(sc, sc);
       ctx.translate(-s.c[0], -s.c[1]);
-      ctx.globalAlpha = 1 - 0.5 * e;
+      ctx.globalAlpha = Math.min(1, e * 4);              // the lifted plate fades in as it leaves the body, then stays solid
       ctx.drawImage(sprites[i], s.box[0], s.box[1], s.box[2], s.box[3]);
-      if (e > 0.02) {
-        ctx.globalAlpha = 0.55 * e;
-        ctx.lineWidth = 1 / (k * sc);
-        ctx.stroke(s.edge);
-      }
     }
     ctx.globalAlpha = 1;
   }
