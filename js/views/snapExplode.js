@@ -9,7 +9,9 @@
 //   canvas.opened  dimmed still with Tony's face kept lit (cross-faded in with CSS)
 //   svg.skel       the F.R.I.D.A.Y. skeleton scan (static SVG; CSS animations run only while open)
 //   canvas.shards  armor plates, drawn only while open or animating
-//   svg.snap-top   hover targets, popped stones and the label tag
+//   canvas.nerves  six glowing nerves, one per stone and in its colour, from the gauntlet up the arm to the
+//                  reactor (small canvas over the arm only; its loop runs only while the scan is open)
+//   svg.snap-top   hover targets, the six stones drawn as cut gems, and the label tag
 //
 // All coordinates are pixels in the 1920×808 still, traced by eye. Stone positions follow the glows on
 // the gauntlet; the Time Stone sits on the thumb and is the least certain.
@@ -38,6 +40,10 @@ const STONES = [
   { n: "Time", c: "#7be36b", x: 902, y: 285, d: "the Eye of Agamotto" }
 ];
 const REACTOR = { n: "Arc reactor", c: "#5fd8ff", x: 1207, y: 452, d: "powers the suit and stores its nanites" };
+// The arm the nerves follow, traced on the still: wrist, forearm, elbow, upper arm, shoulder, chest, reactor.
+const ARM = [[948, 330], [960, 450], [985, 592], [1022, 480], [1062, 372], [1128, 408], [REACTOR.x, REACTOR.y]];
+const SHOULDER = 4;                                    // index in ARM: the nerves start to fade from here
+const NERVE = { box: [850, 150, 420, 500], spread: 4.2, wave: 5, grow: 900, fadeTo: 0.03, pulses: 3, speed: 0.00042 };
 
 const easeOut = t => 1 - (1 - t) ** 3;
 const clamp01 = t => (t < 0 ? 0 : t > 1 ? 1 : t);
@@ -60,8 +66,101 @@ export async function mountSnapExplode({ stage, keys, src }) {
   const restC = canvasLayer("rest"), openC = canvasLayer("opened");
   const skel = svgLayer("skel");
   const shardC = canvasLayer("shards");
+  const nerveC = canvasLayer("nerves");
+  const [nbx, nby, nbw, nbh] = NERVE.box;              // the nerve canvas only covers the arm
+  Object.assign(nerveC.style, { left: `${(nbx - VB.x) / VB.w * 100}%`, top: `${(nby - VB.y) / VB.h * 100}%`,
+    width: `${nbw / VB.w * 100}%`, height: `${nbh / VB.h * 100}%` });
   const top = svgLayer("snap-top");
   drawSkeleton(skel);
+
+  // ---- nerves: one per stone, drawn with d3.line on the small canvas ----
+  // Each nerve leaves its stone, joins the arm at the wrist a little to one side of its neighbours, wavers a
+  // few pixels like a vein, and closes in on the reactor. Points are fixed (seeded), so nothing is computed per frame.
+  const smooth = pts => {                                // Chaikin corner cutting, twice: rounds the elbow and shoulder
+    for (let r = 0; r < 2; r++) {
+      const out = [pts[0]];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [ax, ay] = pts[i], [bx2, by2] = pts[i + 1];
+        out.push([ax * 0.75 + bx2 * 0.25, ay * 0.75 + by2 * 0.25], [ax * 0.25 + bx2 * 0.75, ay * 0.25 + by2 * 0.75]);
+      }
+      out.push(pts[pts.length - 1]);
+      pts = out;
+    }
+    return pts;
+  };
+  const nrand = seeded(6);
+  const armLen = d3.sum(d3.pairs(ARM), ([p, q]) => Math.hypot(q[0] - p[0], q[1] - p[1]));
+  const toShoulder = d3.sum(d3.pairs(ARM.slice(0, SHOULDER + 1)), ([p, q]) => Math.hypot(q[0] - p[0], q[1] - p[1]));
+  const nerves = STONES.map((s, i) => {
+    const side = (i - (STONES.length - 1) / 2) * NERVE.spread, ph = nrand() * 6.28, ph2 = nrand() * 6.28;
+    const ctrl = smooth([[s.x, s.y], [(s.x + ARM[0][0]) / 2 + side, (s.y + ARM[0][1]) / 2], ...ARM]);
+    const pts = [];                                      // resample every ~7 px, then push sideways
+    let run = 0;
+    for (let j = 0; j < ctrl.length - 1; j++) {
+      const [ax, ay] = ctrl[j], [bx2, by2] = ctrl[j + 1], L = Math.hypot(bx2 - ax, by2 - ay), n = Math.max(1, Math.round(L / 7));
+      for (let q = 0; q < n; q++) {
+        const f = q / n, d = run + L * f, end = Math.min(1, d / 60, (armLen + 60 - d) / 90);   // no offset at the stone or the reactor
+        const off = (side + NERVE.wave * (Math.sin(d * 0.045 + ph) + 0.6 * Math.sin(d * 0.11 + ph2))) * Math.max(0, end);
+        pts.push([ax + (bx2 - ax) * f - (by2 - ay) / L * off, ay + (by2 - ay) * f + (bx2 - ax) / L * off, d]);
+      }
+      run += L;
+    }
+    pts.push([REACTOR.x, REACTOR.y, run]);
+    const fadeFrom = toShoulder + 40;                    // light of each point: full to the shoulder, then down to the reactor
+    pts.forEach(p => { p[3] = p[2] <= fadeFrom ? 1 : Math.max(NERVE.fadeTo, 1 - (1 - NERVE.fadeTo) * (p[2] - fadeFrom) / (run - fadeFrom)); });
+    const dot = document.createElement("canvas"), dg = dot.getContext("2d");
+    dot.width = dot.height = 32;
+    const grad = dg.createRadialGradient(16, 16, 0, 16, 16, 16), c = d3.rgb(s.c);
+    grad.addColorStop(0, "rgba(255,255,255,.95)"); grad.addColorStop(0.3, `rgba(${c.r},${c.g},${c.b},.8)`); grad.addColorStop(1, `rgba(${c.r},${c.g},${c.b},0)`);
+    dg.fillStyle = grad; dg.fillRect(0, 0, 32, 32);
+    return { stone: s, pts, len: run, dot, phase: nrand() };
+  });
+  const nerveLine = d3.line().x(p => p[0]).y(p => p[1]);
+  let nk = 1, nerveOn = false, nerveRaf = 0, nerveT0 = 0, nerveOff = 0, focusStone = null;
+  function sizeNerves() {
+    const r = stage.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 1.5);
+    nk = r.width * dpr / VB.w;
+    nerveC.width = Math.max(1, Math.round(nbw * nk)); nerveC.height = Math.max(1, Math.round(nbh * nk));
+  }
+  // One frame: every nerve in a few short pieces (so its light can fall off along the way), as three strokes each
+  // (wide and faint, medium, thin and white-hot: a glow without shadowBlur), then the pulses travelling to the reactor.
+  function drawNerves(now) {
+    const ctx = nerveC.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, nerveC.width, nerveC.height);
+    const grown = reduced ? 1 : clamp01((now - nerveT0) / NERVE.grow);
+    const out = nerveOn ? 1 : 1 - clamp01((now - nerveOff) / 260);
+    if (out <= 0) return false;
+    ctx.setTransform(nk, 0, 0, nk, -nbx * nk, -nby * nk);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    nerveLine.context(ctx);
+    const piece = 6;
+    for (const nv of nerves) {
+      const dim = focusStone && focusStone !== nv.stone ? 0.22 : 1;
+      const flick = reduced ? 1 : 0.82 + 0.18 * Math.sin(now * 0.006 + nv.phase * 20);
+      const upTo = Math.floor((nv.pts.length - 1) * easeOut(grown));
+      for (let j = 0; j < upTo; j += piece) {
+        const seg = nv.pts.slice(j, Math.min(upTo, j + piece) + 1), a = seg[0][3] * dim * flick * out;
+        for (const [width, alpha, color] of [[9, 0.1, nv.stone.c], [4, 0.34, nv.stone.c], [1.4, 0.9, "#ffffff"]]) {
+          ctx.beginPath(); nerveLine(seg);
+          ctx.lineWidth = width; ctx.globalAlpha = alpha * a; ctx.strokeStyle = color; ctx.stroke();
+        }
+      }
+      if (!reduced && grown >= 1) for (let q = 0; q < NERVE.pulses; q++) {
+        const f = (now * NERVE.speed + nv.phase + q / NERVE.pulses) % 1, p = nv.pts[Math.floor(f * (nv.pts.length - 1))];
+        ctx.globalAlpha = p[3] * dim * out;
+        ctx.drawImage(nv.dot, p[0] - 7, p[1] - 7, 14, 14);
+      }
+    }
+    ctx.globalAlpha = 1;
+    return true;
+  }
+  function nerveLoop(now) {
+    nerveRaf = 0;
+    if (drawNerves(now) && !reduced && !document.hidden) nerveRaf = requestAnimationFrame(nerveLoop);
+  }
+  const wakeNerves = () => { if (!nerveRaf) nerveRaf = requestAnimationFrame(nerveLoop); };
 
   // ---- shards: Voronoi cells inside each armor section (seeded, so the pattern is stable) ----
   const rand = seeded(85);
@@ -111,6 +210,8 @@ export async function mountSnapExplode({ stage, keys, src }) {
     sprites = null;
     buildSprites(++spriteJob);
     if (open || animating) drawShards();
+    sizeNerves();
+    if (open) wakeNerves();
   }
   function drawOpened(ctx) {
     base(ctx);
@@ -203,7 +304,10 @@ export async function mountSnapExplode({ stage, keys, src }) {
     stage.classList.toggle("open", on);
     shards.forEach(s => (s.from = s.cur));
     t0 = performance.now();
-    if (!on) focusPart(null);
+    nerveOn = on;
+    if (on) nerveT0 = t0; else nerveOff = t0;
+    wakeNerves();
+    focusPart(null);
     if (!animating) { animating = true; requestAnimationFrame(tick); }
   }
 
@@ -220,13 +324,38 @@ export async function mountSnapExplode({ stage, keys, src }) {
     const vx = s.x - hand[0], vy = s.y - hand[1], L = Math.hypot(vx, vy) || 1;
     s.px = vx / L * 46; s.py = vy / L * 46 - 10;
   });
+  // Each stone is drawn as a cut gem in its own colour (no photo crop: the still's glare blew those out to white).
+  // An oval of GEM.sides facets round a flat table; each facet is shaded by how much it faces the light.
+  const GEM = { sides: 10, rx: 8.5, ry: 10.5, table: 0.52, light: -2.2 };
+  const ring = k => d3.range(GEM.sides).map(i => { const a = (i + 0.5) / GEM.sides * 2 * Math.PI; return [Math.cos(a) * GEM.rx * k, Math.sin(a) * GEM.ry * k]; });
+  const outer = ring(1), inner = ring(GEM.table);
   const defs = top.append("defs");
-  defs.append("clipPath").attr("id", "snapStoneClip").append("circle").attr("r", 10);
+  STONES.forEach((s, i) => {
+    const glow = defs.append("radialGradient").attr("id", `gemGlow${i}`);
+    glow.append("stop").attr("offset", 0).attr("stop-color", s.c).attr("stop-opacity", 0.75);
+    glow.append("stop").attr("offset", 0.45).attr("stop-color", s.c).attr("stop-opacity", 0.28);
+    glow.append("stop").attr("offset", 1).attr("stop-color", s.c).attr("stop-opacity", 0);
+    const tbl = defs.append("radialGradient").attr("id", `gemTable${i}`).attr("cx", 0.36).attr("cy", 0.3).attr("r", 0.8);
+    tbl.append("stop").attr("offset", 0).attr("stop-color", "#fff");
+    tbl.append("stop").attr("offset", 0.35).attr("stop-color", d3.color(s.c).brighter(0.9));
+    tbl.append("stop").attr("offset", 1).attr("stop-color", d3.color(s.c).darker(0.5));
+  });
   const stoneG = top.append("g").selectAll("g").data(STONES).join("g").attr("transform", d => `translate(${d.x},${d.y})`);
-  const stoneIn = stoneG.append("g").attr("transform", "translate(0,0) scale(1)").attr("opacity", 0);
-  stoneIn.append("image").attr("href", src).attr("width", 1920).attr("height", 808)
-    .attr("x", d => -d.x).attr("y", d => -d.y).attr("clip-path", "url(#snapStoneClip)");
-  stoneIn.append("circle").attr("r", 10).attr("fill", "none").attr("stroke", d => d.c);
+  const stoneIn = stoneG.append("g").attr("class", "gem").attr("transform", "translate(0,0) scale(1)").attr("opacity", 0);
+  stoneIn.each(function (d, si) {
+    const g = d3.select(this), base = d3.color(d.c);
+    g.append("circle").attr("r", 21).attr("fill", `url(#gemGlow${si})`);
+    g.append("polygon").attr("points", outer.join(" ")).attr("fill", base.darker(1.6));
+    for (let i = 0; i < GEM.sides; i++) {
+      const j = (i + 1) % GEM.sides, mid = Math.atan2(outer[i][1] + outer[j][1], outer[i][0] + outer[j][0]);
+      const lit = Math.cos(mid - GEM.light);             // 1 = facing the light, -1 = facing away
+      g.append("polygon").attr("points", [outer[i], outer[j], inner[j], inner[i]].join(" "))
+        .attr("fill", lit > 0 ? base.brighter(lit * 1.5) : base.darker(-lit * 1.7)).attr("stroke", base.brighter(1.8)).attr("stroke-width", 0.18).attr("stroke-opacity", 0.55);
+    }
+    g.append("polygon").attr("points", inner.join(" ")).attr("fill", `url(#gemTable${si})`).attr("stroke", "#fff").attr("stroke-width", 0.22).attr("stroke-opacity", 0.6);
+    g.append("ellipse").attr("cx", -2.6).attr("cy", -4.4).attr("rx", 2.1).attr("ry", 1.1).attr("transform", "rotate(-32 -2.6 -4.4)").attr("fill", "#fff").attr("opacity", 0.85);
+    g.append("circle").attr("cx", 3.4).attr("cy", 5.6).attr("r", 0.7).attr("fill", "#fff").attr("opacity", 0.6);
+  });
   const hot = (sel, d) => sel.attr("class", "hot")
     .on("pointerenter", () => focusPart(d)).on("pointerleave", () => focusPart(null))
     .on("click", e => { e.stopPropagation(); setOpen(true); focusPart(d); });
@@ -235,8 +364,11 @@ export async function mountSnapExplode({ stage, keys, src }) {
 
   function focusPart(p) {
     const isStone = p && p !== REACTOR;
+    focusStone = isStone ? p : null;                     // its nerve stays bright, the other five dim
+    if (open && reduced) wakeNerves();
+    // while the scan is open every gem sits in its socket; the one in focus lifts out and grows
     stoneIn.interrupt().transition().duration(reduced ? 0 : 300).ease(d3.easeBackOut)
-      .attr("opacity", d => (d === p ? 1 : 0))
+      .attr("opacity", d => (d === p || open ? 1 : 0))
       .attr("transform", d => (d === p ? `translate(${d.px},${d.py}) scale(3)` : "translate(0,0) scale(1)"));
     reactorRing.attr("opacity", p === REACTOR ? 1 : 0);
     if (!p) { tag.classed("on", false); tagLine.attr("opacity", 0); return; }
